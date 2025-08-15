@@ -83,13 +83,10 @@ class ImageEditor(QWidget):
             self.image_item = QGraphicsPixmapItem(pixmap)
             self.scene.addItem(self.image_item)
 
-            # Set scene rect to image bounds (no big offsets)
             self.scene.setSceneRect(self.image_item.boundingRect())
 
-            # Fit image to window size while keeping aspect ratio
             self.canvas.fitInView(self.image_item, Qt.KeepAspectRatio)
 
-            # Center the image in view
             self.canvas.centerOn(self.image_item)
 
 
