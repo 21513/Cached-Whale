@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QFileDialog, QVBoxLayout, QHBoxLayout
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QFileDialog, QVBoxLayout
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 
@@ -13,23 +13,13 @@ class ImageEditor(QWidget):
         self.button = QPushButton("Import Image")
         self.button.clicked.connect(self.load_image)
 
-        self.zoom_in_button = QPushButton("Zoom In")
-        self.zoom_in_button.clicked.connect(self.zoom_in)
-        self.zoom_out_button = QPushButton("Zoom Out")
-        self.zoom_out_button.clicked.connect(self.zoom_out)
-
         self.image_label = QLabel("No image loaded")
         self.image_label.setScaledContents(True)
         self.image_label.setAlignment(Qt.AlignCenter)
 
         # Layout
-        button_layout = QHBoxLayout()
-        button_layout.addWidget(self.button)
-        button_layout.addWidget(self.zoom_in_button)
-        button_layout.addWidget(self.zoom_out_button)
-
         layout = QVBoxLayout()
-        layout.addLayout(button_layout)
+        layout.addWidget(self.button)
         layout.addWidget(self.image_label)
         self.setLayout(layout)
 
@@ -56,8 +46,14 @@ class ImageEditor(QWidget):
 
             # Ensure the image does not exceed the label size unless zoomed in
             if self.zoom_factor <= 1.0:
-                scaled_width = min(scaled_width, label_size.width())
-                scaled_height = min(scaled_height, label_size.height())
+                # Fit image to label while preserving aspect ratio
+                aspect_ratio = base_width / base_height
+                if label_size.width() / aspect_ratio <= label_size.height():
+                    scaled_width = min(scaled_width, label_size.width())
+                    scaled_height = int(scaled_width / aspect_ratio)
+                else:
+                    scaled_height = min(scaled_height, label_size.height())
+                    scaled_width = int(scaled_height * aspect_ratio)
 
             scaled_pixmap = self.original_pixmap.scaled(
                 scaled_width, scaled_height, Qt.KeepAspectRatio, Qt.SmoothTransformation
@@ -66,16 +62,14 @@ class ImageEditor(QWidget):
         else:
             self.image_label.setText("No image loaded")
 
-    def zoom_in(self):
+    def wheelEvent(self, event):
         if self.original_pixmap:
-            self.zoom_factor *= 1.25
-            self.update_image_display()
-
-    def zoom_out(self):
-        if self.original_pixmap:
-            self.zoom_factor /= 1.25
-            if self.zoom_factor < 0.1:
-                self.zoom_factor = 0.1
+            if event.angleDelta().y() > 0:
+                self.zoom_factor *= 1.25
+            else:
+                self.zoom_factor /= 1.25
+                if self.zoom_factor < 0.1:
+                    self.zoom_factor = 0.1
             self.update_image_display()
 
     def resizeEvent(self, event):
