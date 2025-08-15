@@ -22,20 +22,23 @@ RECENT_FILE = os.path.join(os.getenv("APPDATA"), "ManipulateRecent.json")
 # Application-wide stylesheet for a retro dark look
 DARK_RETRO_STYLE = """
 QWidget {
-    background-color: #181818;
-    font-family: 'lcd', 'Tahoma', 'Verdana', 'Arial', sans-serif;
-    color: #e0e0e0;
+    background-color: #010101;
+    font-family: 'LCDMono';
+    color: #ffffff;
+}
+QGraphicsView {
+    background-image:
 }
 QLabel {
-    color: #e0e0e0;
+    color: #ffffff;
 }
 QPushButton {
-    background-color: #232323;
+    background-color: #010101;
     border: 2px solid #444;
     border-radius: 4px;
     padding: 8px;
     font-size: 14px;
-    color: #e0e0e0;
+    color: #ffffff;
     margin-bottom: 8px;
     min-width: 140px;
 }
@@ -44,11 +47,10 @@ QPushButton:hover {
     border: 2px solid #888;
 }
 QMenuBar {
-    background-color: #222;
-    border-bottom: 2px solid #444;
+    background-color: #010101;
 }
 QMenu {
-    background-color: #232323;
+    background-color: #010101;
     color: #e0e0e0;
 }
 """
@@ -105,7 +107,7 @@ class StartPage(QWidget):
         layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         # Title
         title = QLabel("Manipulate")
-        title.setStyleSheet("font-size: 28px; font-weight: bold; margin-bottom: 12px;")
+        title.setStyleSheet("font-size: 64px; margin-bottom: 12px;")
         layout.addWidget(title, alignment=Qt.AlignLeft)
         # Import button
         import_btn = QPushButton("Import Image")
@@ -765,7 +767,7 @@ class ImageEditor(QWidget):
         # Set up main window, font, and style
         self.setWindowTitle("Image Editor with Canvas")
         self.resize(800, 600)
-        font_path = os.path.join(os.path.dirname(__file__), "fonts", "lcd.ttf")
+        font_path = os.path.join(os.path.dirname(__file__), "fonts", "lcd.TTF")
         if os.path.exists(font_path):
             font_id = QFontDatabase.addApplicationFont(font_path)
             families = QFontDatabase.applicationFontFamilies(font_id)
