@@ -22,7 +22,8 @@ from PyQt5.QtWidgets import (
     QFormLayout,
     QLineEdit,
     QCheckBox,
-    QDialogButtonBox
+    QDialogButtonBox,
+    QSlider,
 )
 from PyQt5.QtGui import QPixmap, QMouseEvent, QWheelEvent, QImage, QColor, QFontDatabase, QFont
 from PyQt5.QtCore import Qt, pyqtSignal, QBuffer, QIODevice, QEvent
@@ -194,46 +195,93 @@ class ResizeDialog(QDialog):
             return self.orig_w, self.orig_h
 
 class CompressionDialog(QDialog):
-    def __init__(self, default_quality=10):
-        super().__init__()
+    def __init__(self, parent, orig_pixmap, apply_callback, default_quality=10):
+        super().__init__(parent)
         self.setWindowTitle("Compression Artefacts")
-        self.setFixedSize(220, 100)
-        layout = QFormLayout()
-        self.quality_edit = QLineEdit(str(default_quality))
-        layout.addRow("JPEG Quality (1-100):", self.quality_edit)
+        self.setFixedSize(260, 140)
+        self.orig_pixmap = orig_pixmap
+        self.apply_callback = apply_callback
+        layout = QVBoxLayout()
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setMinimum(1)
+        self.slider.setMaximum(100)
+        self.slider.setValue(default_quality)
+        layout.addWidget(QLabel("JPEG Quality (1-100):"))
+        layout.addWidget(self.slider)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        layout.addRow(buttons)
+        layout.addWidget(buttons)
         self.setLayout(layout)
+        self.slider.valueChanged.connect(self.apply_current)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
+        self._last_pixmap = orig_pixmap
 
-    def get_quality(self):
-        try:
-            q = int(self.quality_edit.text())
-            return max(1, min(100, q))
-        except Exception:
-            return 10
+    def apply_current(self, value):
+        image = self.orig_pixmap.toImage()
+        buffer = QBuffer()
+        buffer.open(QIODevice.ReadWrite)
+        image.save(buffer, "JPEG", quality=value)
+        ba = buffer.data()
+        qimg = QImage.fromData(ba, "JPEG")
+        pixmap = QPixmap.fromImage(qimg)
+        self._last_pixmap = pixmap
+        self.apply_callback(pixmap)
+
+    def get_pixmap(self):
+        return self._last_pixmap
 
 class DitherDialog(QDialog):
-    def __init__(self, default_threshold=128):
-        super().__init__()
+    def __init__(self, parent, orig_pixmap, apply_callback, default_threshold=128):
+        super().__init__(parent)
         self.setWindowTitle("Dither Effect")
-        self.setFixedSize(220, 100)
-        layout = QFormLayout()
-        self.threshold_edit = QLineEdit(str(default_threshold))
-        layout.addRow("Threshold (0-255):", self.threshold_edit)
+        self.setFixedSize(260, 140)
+        self.orig_pixmap = orig_pixmap
+        self.apply_callback = apply_callback
+        layout = QVBoxLayout()
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(255)
+        self.slider.setValue(default_threshold)
+        layout.addWidget(QLabel("Threshold (0-255):"))
+        layout.addWidget(self.slider)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        layout.addRow(buttons)
+        layout.addWidget(buttons)
         self.setLayout(layout)
+        self.slider.valueChanged.connect(self.apply_current)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
+        self._last_pixmap = orig_pixmap
 
-    def get_threshold(self):
-        try:
-            t = int(self.threshold_edit.text())
-            return max(0, min(255, t))
-        except Exception:
-            return 128
+    def apply_current(self, value):
+        orig_pixmap = self.orig_pixmap
+        image = orig_pixmap.toImage().convertToFormat(QImage.Format_ARGB32)
+        ptr = image.bits()
+        ptr.setsize(image.byteCount())
+        arr = np.frombuffer(ptr, np.uint8).reshape((image.height(), image.width(), 4))
+        gray = (0.299 * arr[..., 2] + 0.587 * arr[..., 1] + 0.114 * arr[..., 0]).astype(np.int16)
+        dithered = np.zeros_like(gray)
+        err = np.zeros_like(gray, dtype=np.int16)
+        h, w = gray.shape
+        for y in range(h):
+            old_row = gray[y] + err[y]
+            new_row = np.where(old_row < value, 0, 255)
+            dithered[y] = new_row
+            quant_error = old_row - new_row
+            if y + 1 < h:
+                err[y + 1, :-1] += (quant_error[1:] * 3) // 16
+                err[y + 1] += (quant_error * 5) // 16
+                err[y + 1, 1:] += (quant_error[:-1] * 1) // 16
+            if y < h and w > 1:
+                err[y, 1:] += (quant_error[:-1] * 7) // 16
+        arr[..., 0] = dithered.clip(0, 255)
+        arr[..., 1] = dithered.clip(0, 255)
+        arr[..., 2] = dithered.clip(0, 255)
+        pixmap = QPixmap.fromImage(image)
+        self._last_pixmap = pixmap
+        self.apply_callback(pixmap)
+
+    def get_pixmap(self):
+        return self._last_pixmap
 
 class ImageEditor(QWidget):
     def __init__(self):
@@ -526,69 +574,35 @@ class ImageEditor(QWidget):
             self.canvas.centerOn(self.image_item)
 
     def compression_dialog(self):
-        dlg = CompressionDialog(default_quality=10)
-        if dlg.exec_() == QDialog.Accepted:
-            quality = dlg.get_quality()
-            self.compression_artifacts(quality)
-
-    def compression_artifacts(self, quality=10):
-        if self.image_item:
-            image = self.image_item.pixmap().toImage()
-            buffer = QBuffer()
-            buffer.open(QIODevice.ReadWrite)
-            image.save(buffer, "JPEG", quality=quality)
-            ba = buffer.data()
-            qimg = QImage.fromData(ba, "JPEG")
-            pixmap = QPixmap.fromImage(qimg)
-            self.scene.clear()
-            self.image_item = QGraphicsPixmapItem(pixmap)
-            self.scene.addItem(self.image_item)
-            self.scene.setSceneRect(self.image_item.boundingRect())
-            self.canvas.fitInView(self.image_item, Qt.KeepAspectRatio)
-            self.canvas.centerOn(self.image_item)
-            self.save_image_btn.setEnabled(True)
-            self.push_undo(pixmap)
-
-    def dither_dialog(self):
-        dlg = DitherDialog(default_threshold=128)
-        if dlg.exec_() == QDialog.Accepted:
-            threshold = dlg.get_threshold()
-            self.dither_image(threshold)
-
-    def dither_image(self, threshold=128):
         if self.image_item:
             orig_pixmap = self.image_item.pixmap()
-            image = orig_pixmap.toImage().convertToFormat(QImage.Format_ARGB32)
-            ptr = image.bits()
-            ptr.setsize(image.byteCount())
-            arr = np.frombuffer(ptr, np.uint8).reshape((image.height(), image.width(), 4))
-            gray = (0.299 * arr[..., 2] + 0.587 * arr[..., 1] + 0.114 * arr[..., 0]).astype(np.int16)
-            dithered = np.zeros_like(gray)
-            err = np.zeros_like(gray, dtype=np.int16)
-            h, w = gray.shape
-            for y in range(h):
-                old_row = gray[y] + err[y]
-                new_row = np.where(old_row < threshold, 0, 255)
-                dithered[y] = new_row
-                quant_error = old_row - new_row
-                if y + 1 < h:
-                    err[y + 1, :-1] += (quant_error[1:] * 3) // 16
-                    err[y + 1] += (quant_error * 5) // 16
-                    err[y + 1, 1:] += (quant_error[:-1] * 1) // 16
-                if y < h and w > 1:
-                    err[y, 1:] += (quant_error[:-1] * 7) // 16
-            arr[..., 0] = dithered.clip(0, 255)
-            arr[..., 1] = dithered.clip(0, 255)
-            arr[..., 2] = dithered.clip(0, 255)
-            new_pixmap = QPixmap.fromImage(image)
-            self.scene.clear()
-            self.image_item = QGraphicsPixmapItem(new_pixmap)
-            self.scene.addItem(self.image_item)
-            self.scene.setSceneRect(self.image_item.boundingRect())
-            self.canvas.fitInView(self.image_item, Qt.KeepAspectRatio)
-            self.canvas.centerOn(self.image_item)
-            self.save_image_btn.setEnabled(True)
-            self.push_undo(new_pixmap)
+            dlg = CompressionDialog(self, orig_pixmap, self.set_canvas_pixmap, default_quality=10)
+            result = dlg.exec_()
+            if result == QDialog.Accepted:
+                pixmap = dlg.get_pixmap()
+                self.push_undo(pixmap)
+            else:
+                self.set_canvas_pixmap(orig_pixmap)
+
+    def dither_dialog(self):
+        if self.image_item:
+            orig_pixmap = self.image_item.pixmap()
+            dlg = DitherDialog(self, orig_pixmap, self.set_canvas_pixmap, default_threshold=128)
+            result = dlg.exec_()
+            if result == QDialog.Accepted:
+                pixmap = dlg.get_pixmap()
+                self.push_undo(pixmap)
+            else:
+                self.set_canvas_pixmap(orig_pixmap)
+
+    def set_canvas_pixmap(self, pixmap):
+        self.scene.clear()
+        self.image_item = QGraphicsPixmapItem(pixmap)
+        self.scene.addItem(self.image_item)
+        self.scene.setSceneRect(self.image_item.boundingRect())
+        self.canvas.fitInView(self.image_item, Qt.KeepAspectRatio)
+        self.canvas.centerOn(self.image_item)
+        self.save_image_btn.setEnabled(True)
 
     def load_recent_images(self):
         if os.path.exists(RECENT_FILE):
