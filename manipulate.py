@@ -23,7 +23,8 @@ RECENT_FILE = os.path.join(os.getenv("APPDATA"), "ManipulateRecent.json")
 DARK_RETRO_STYLE = """
 QWidget {
     background-color: #010101;
-    font-family: 'LCDMono';
+    font-family: 'Windows Command Prompt';
+    font-size: 24px;
     color: #ffffff;
 }
 QGraphicsView {
@@ -37,13 +38,13 @@ QPushButton {
     border: 2px solid #444;
     border-radius: 4px;
     padding: 8px;
-    font-size: 14px;
+    font-size: 24px;
     color: #ffffff;
     margin-bottom: 8px;
     min-width: 140px;
 }
 QPushButton:hover {
-    background-color: #333;
+    background-color: #202020;
     border: 2px solid #888;
 }
 QMenuBar {
@@ -51,31 +52,57 @@ QMenuBar {
 }
 QMenu {
     background-color: #010101;
-    color: #e0e0e0;
+    color: #ffffff;
+}
+Qmenu::item:hover {
+    background-color: #202020;
+}
+QMenu:hover {
+    background-color: #202020;
 }
 """
 
 # --- CanvasView: Custom QGraphicsView for displaying and interacting with images ---
+from PyQt5.QtCore import Qt, QRectF
+from PyQt5.QtGui import QPainter, QPixmap, QBrush, QColor
+from PyQt5.QtWidgets import QGraphicsView
+
 class CanvasView(QGraphicsView):
     def __init__(self):
         super().__init__()
-        # Enable smooth transformation for better image quality
-        self.setRenderHints(self.renderHints() | Qt.SmoothTransformation)
-        # Anchor transformations (zoom/pan) under mouse
+        self.setRenderHints(self.renderHints() | QPainter.SmoothPixmapTransform)
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-        self.zoom_factor = 1.25  # Zoom step
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        self.zoom_factor = 1.25
         self.middle_mouse_pressed = False
         self.last_mouse_pos = None
 
-    # Mouse wheel zoom
-    def wheelEvent(self, event: QWheelEvent):
+        self.setSceneRect(-16384, -16384, 32768, 32768)
+
+        # Create checkerboard tile
+        tile_size = 64
+        pixmap = QPixmap(tile_size * 2, tile_size * 2)
+        pixmap.fill(QColor(19, 19, 19))
+        painter = QPainter(pixmap)
+        painter.fillRect(0, 0, tile_size, tile_size, QColor(1, 1, 1))
+        painter.fillRect(tile_size, tile_size, tile_size, tile_size, QColor(1, 1, 1))
+        painter.end()
+        self.checkerboard_brush = QBrush(pixmap)
+
+    def drawBackground(self, painter: QPainter, rect: QRectF):
+        # Draw the checkerboard pattern first
+        painter.fillRect(rect, self.checkerboard_brush)
+        super().drawBackground(painter, rect)
+
+    def wheelEvent(self, event):
         if event.angleDelta().y() > 0:
             self.scale(self.zoom_factor, self.zoom_factor)
         else:
             self.scale(1 / self.zoom_factor, 1 / self.zoom_factor)
 
-    # Middle mouse drag for panning
-    def mousePressEvent(self, event: QMouseEvent):
+    def mousePressEvent(self, event):
         if event.button() == Qt.MiddleButton:
             self.middle_mouse_pressed = True
             self.setCursor(Qt.ClosedHandCursor)
@@ -83,16 +110,17 @@ class CanvasView(QGraphicsView):
         else:
             super().mousePressEvent(event)
 
-    def mouseMoveEvent(self, event: QMouseEvent):
+    def mouseMoveEvent(self, event):
         if self.middle_mouse_pressed and self.last_mouse_pos is not None:
             delta = event.pos() - self.last_mouse_pos
             self.last_mouse_pos = event.pos()
+
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta.x())
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta.y())
         else:
             super().mouseMoveEvent(event)
 
-    def mouseReleaseEvent(self, event: QMouseEvent):
+    def mouseReleaseEvent(self, event):
         if event.button() == Qt.MiddleButton:
             self.middle_mouse_pressed = False
             self.setCursor(Qt.ArrowCursor)
@@ -107,7 +135,7 @@ class StartPage(QWidget):
         layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         # Title
         title = QLabel("Manipulate")
-        title.setStyleSheet("font-size: 64px; margin-bottom: 12px;")
+        title.setStyleSheet("font-family: 'LCDMono'; font-size: 64px; margin-bottom: 12px;")
         layout.addWidget(title, alignment=Qt.AlignLeft)
         # Import button
         import_btn = QPushButton("Import Image")
@@ -116,7 +144,7 @@ class StartPage(QWidget):
         layout.addWidget(import_btn, alignment=Qt.AlignLeft)
         # Recent images list
         recent_label = QLabel("Recent Images:")
-        recent_label.setStyleSheet("font-size: 16px; margin-bottom: 8px;")
+        recent_label.setStyleSheet("margin-bottom: 8px;")
         layout.addWidget(recent_label, alignment=Qt.AlignLeft)
         self.recent_buttons = []
         for path in recent_images:
@@ -201,11 +229,11 @@ class ResizeDialog(QDialog):
 # Each dialog below allows the user to preview and apply a specific image effect.
 # All dialogs use sliders/input boxes for parameters, show current value, and preview on open.
 
-# CompressionDialog: JPEG compression artefacts
+# CompressionDialog: JPEG compression Compression
 class CompressionDialog(QDialog):
     def __init__(self, parent, orig_pixmap, apply_callback, default_quality=10):
         super().__init__(parent)
-        self.setWindowTitle("Compression Artefacts")
+        self.setWindowTitle("JPEG Compression")
         self.setFixedSize(320, 180)  # Increased size
         self.orig_pixmap = orig_pixmap
         self.apply_callback = apply_callback
@@ -604,7 +632,7 @@ class PixelateDialog(QDialog):
         self.slider.setMinimum(2)
         self.slider.setMaximum(128)
         self.slider.setValue(default_blocksize)
-        self.block_label = QLabel(f"Block Size: {default_blocksize}px")
+        self.block_label = QLabel(f"Pixel Size: {default_blocksize}px")
         layout.addWidget(self.block_label)
         layout.addWidget(self.slider)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -621,7 +649,7 @@ class PixelateDialog(QDialog):
         self.apply_current()
 
     def on_slider_changed(self, value):
-        self.block_label.setText(f"Block Size: {self.slider.value()}px")
+        self.block_label.setText(f"Pixel Size: {self.slider.value()}px")
         self.timer.start(500)
 
     def apply_current(self):
@@ -773,6 +801,12 @@ class ImageEditor(QWidget):
             families = QFontDatabase.applicationFontFamilies(font_id)
             if families:
                 self.setFont(QFont(families[0], 12))
+        font_path = os.path.join(os.path.dirname(__file__), "fonts", "cmd.TTF")
+        if os.path.exists(font_path):
+            font_id = QFontDatabase.addApplicationFont(font_path)
+            families = QFontDatabase.applicationFontFamilies(font_id)
+            if families:
+                self.setFont(QFont(families[0], 12))
         self.setStyleSheet(DARK_RETRO_STYLE)
 
         # Recent images management
@@ -809,7 +843,7 @@ class ImageEditor(QWidget):
         self.dither_btn = QPushButton("Dither Effect")
         self.dither_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.dither_btn.clicked.connect(self.dither_dialog)
-        self.compression_btn = QPushButton("Compression Artefacts")
+        self.compression_btn = QPushButton("JPEG Compression")
         self.compression_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.compression_btn.clicked.connect(self.compression_dialog)
         self.grayscale_btn = QPushButton("Saturation")
@@ -836,11 +870,6 @@ class ImageEditor(QWidget):
         self.scanlines_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.scanlines_btn.clicked.connect(self.scanlines_dialog)
         sidebar_layout.addWidget(self.scanlines_btn)
-
-        self.bloom_btn = QPushButton("Bloom")
-        self.bloom_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
-        self.bloom_btn.clicked.connect(self.bloom_dialog)
-        sidebar_layout.addWidget(self.bloom_btn)
 
         self.filmgrain_btn = QPushButton("Noise")
         self.filmgrain_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
@@ -874,7 +903,6 @@ class ImageEditor(QWidget):
 
         # Menu bar setup (File/Edit)
         self.menu_bar = QMenuBar(self)
-        self.menu_bar.setStyleSheet("font-size: 14px;")
         file_menu = QMenu("&File", self)
         # ...add actions for open, close, undo, redo, recent, exit...
         open_action = QAction("&Open Image...", self)
@@ -1159,17 +1187,6 @@ class ImageEditor(QWidget):
         if self.image_item:
             orig_pixmap = self.image_item.pixmap()
             dlg = ScanlinesDialog(self, orig_pixmap, self.set_canvas_pixmap)
-            result = dlg.exec_()
-            if result == QDialog.Accepted:
-                pixmap = dlg.get_pixmap()
-                self.push_undo(pixmap)
-            else:
-                self.set_canvas_pixmap(orig_pixmap)
-
-    def bloom_dialog(self):
-        if self.image_item:
-            orig_pixmap = self.image_item.pixmap()
-            dlg = BloomDialog(self, orig_pixmap, self.set_canvas_pixmap)
             result = dlg.exec_()
             if result == QDialog.Accepted:
                 pixmap = dlg.get_pixmap()
