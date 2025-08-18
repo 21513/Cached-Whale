@@ -23,8 +23,8 @@ RECENT_FILE = os.path.join(os.getenv("APPDATA"), "ManipulateRecent.json")
 DARK_RETRO_STYLE = """
 QWidget {
     background-color: #010101;
-    font-family: 'Windows Command Prompt';
-    font-size: 24px;
+    font-family: 'Minecraft';
+    font-size: 16px;
     color: #ffffff;
 }
 QGraphicsView {
@@ -38,7 +38,7 @@ QPushButton {
     border: 2px solid #444;
     border-radius: 4px;
     padding: 8px;
-    font-size: 24px;
+    font-size: 16px;
     color: #ffffff;
     margin-bottom: 8px;
     min-width: 140px;
@@ -801,7 +801,7 @@ class ImageEditor(QWidget):
             families = QFontDatabase.applicationFontFamilies(font_id)
             if families:
                 self.setFont(QFont(families[0], 12))
-        font_path = os.path.join(os.path.dirname(__file__), "fonts", "cmd.TTF")
+        font_path = os.path.join(os.path.dirname(__file__), "fonts", "minecraft.ttf")
         if os.path.exists(font_path):
             font_id = QFontDatabase.addApplicationFont(font_path)
             families = QFontDatabase.applicationFontFamilies(font_id)
