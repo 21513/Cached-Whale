@@ -35,8 +35,7 @@ QLabel {
 }
 QPushButton {
     background-color: #010101;
-    border: 2px solid #444;
-    border-radius: 4px;
+    border: 2px solid #888888;
     padding: 8px;
     font-size: 16px;
     color: #ffffff;
@@ -45,10 +44,16 @@ QPushButton {
 }
 QPushButton:hover {
     background-color: #202020;
-    border: 2px solid #888;
+    border: 2px solid #ffffff;
 }
 QMenuBar {
     background-color: #010101;
+}
+QMenuBar:hover {
+    background-color: #101010;
+}
+QMenuBar:hover {
+    background-color: #101010;
 }
 QMenu {
     background-color: #010101;
@@ -794,7 +799,7 @@ class ImageEditor(QWidget):
         super().__init__()
         # Set up main window, font, and style
         self.setWindowTitle("Image Editor with Canvas")
-        self.resize(800, 600)
+        self.resize(900, 600)
         font_path = os.path.join(os.path.dirname(__file__), "fonts", "lcd.TTF")
         if os.path.exists(font_path):
             font_id = QFontDatabase.addApplicationFont(font_path)
