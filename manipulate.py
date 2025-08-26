@@ -7,13 +7,11 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QFileDialog, QVBoxLayout, QGraphicsView,
     QGraphicsScene, QGraphicsPixmapItem, QHBoxLayout, QLabel, QStackedLayout,
     QMenuBar, QMenu, QAction, QSplitter, QDialog, QFormLayout, QLineEdit,
-    QCheckBox, QDialogButtonBox, QSlider, QComboBox,
+    QCheckBox, QDialogButtonBox
 )
-from PyQt5.QtGui import QPixmap, QMouseEvent, QWheelEvent, QImage, QColor, QFontDatabase, QFont, QPainter, QTransform
+from PyQt5.QtGui import QPixmap, QImage, QColor, QFontDatabase, QFont, QPainter, QIcon
 from PyQt5 import QtGui  # For QIntValidator used in HalftoneDialog
-from PyQt5.QtCore import Qt, pyqtSignal, QBuffer, QIODevice, QEvent, QTimer
-import random
-from scipy.ndimage import gaussian_filter
+from PyQt5.QtCore import Qt, pyqtSignal
 
 from style import DARK_MODE
 from effects import (
@@ -213,6 +211,7 @@ class ImageEditor(QWidget):
             if families:
                 self.setFont(QFont(families[0], 12))
         self.setStyleSheet(DARK_MODE)
+        self.setWindowFlag(Qt.FramelessWindowHint)
 
         # Recent images management
         self.recent_images = self.load_recent_images()
@@ -666,6 +665,10 @@ class ImageEditor(QWidget):
 if __name__ == "__main__":
     # Create and run the application
     app = QApplication(sys.argv)
+
+    icon_path = os.path.join(os.path.dirname(__file__), "assets", "icon.ico")
+    app.setWindowIcon(QIcon(icon_path))
+
     editor = ImageEditor()
     editor.show()
     sys.exit(app.exec_())

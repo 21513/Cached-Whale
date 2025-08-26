@@ -1,19 +1,17 @@
-import sys
-import os
-import json
 import numpy as np
 # PyQt5 imports for GUI components and image manipulation
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QPushButton, QFileDialog, QVBoxLayout, QGraphicsView,
-    QGraphicsScene, QGraphicsPixmapItem, QHBoxLayout, QLabel, QStackedLayout,
-    QMenuBar, QMenu, QAction, QSplitter, QDialog, QFormLayout, QLineEdit,
-    QCheckBox, QDialogButtonBox, QSlider, QComboBox,
+    QVBoxLayout,
+    QLabel,
+    QDialog,
+    QLineEdit,
+    QDialogButtonBox,
+    QSlider,
+    QComboBox
 )
-from PyQt5.QtGui import QPixmap, QMouseEvent, QWheelEvent, QImage, QColor, QFontDatabase, QFont, QPainter, QTransform
+from PyQt5.QtGui import QPixmap, QImage, QColor, QPainter, QTransform
 from PyQt5 import QtGui  # For QIntValidator used in HalftoneDialog
-from PyQt5.QtCore import Qt, pyqtSignal, QBuffer, QIODevice, QEvent, QTimer
-import random
-from scipy.ndimage import gaussian_filter
+from PyQt5.QtCore import Qt, QBuffer, QIODevice, QTimer
 
 # CompressionDialog: JPEG compression Compression
 class CompressionDialog(QDialog):
