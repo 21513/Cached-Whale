@@ -3,9 +3,7 @@ import os
 import numpy as np
 import ctypes
 import cupy as cp
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# PyQt5 imports for GUI components and image manipulation
 from PyQt5.QtWidgets import (
     QVBoxLayout,
     QLabel,
@@ -16,14 +14,13 @@ from PyQt5.QtWidgets import (
     QComboBox
 )
 from PyQt5.QtGui import QPixmap, QImage, QColor, QPainter, QTransform
-from PyQt5 import QtGui  # For QIntValidator used in HalftoneDialog
+from PyQt5 import QtGui
 from PyQt5.QtCore import Qt, QBuffer, QIODevice, QTimer
 
-DWMWA_USE_IMMERSIVE_DARK_MODE = 20  # for dark mode, Windows 10+
-DWMWA_CAPTION_COLOR = 35  # custom title bar color
-DWMWA_TEXT_COLOR = 36  # custom text color
+DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+DWMWA_CAPTION_COLOR = 35
+DWMWA_TEXT_COLOR = 36
 
-# CompressionDialog: JPEG compression Compression
 class CompressionDialog(QDialog):
     def __init__(self, parent, original_image, apply_callback, default_quality=10):
         super().__init__(parent)
@@ -80,7 +77,6 @@ class CompressionDialog(QDialog):
             ctypes.sizeof(color_ref)
         )
 
-# DitherDialog: Dithering effect (threshold as percentage)
 class DitherDialog(QDialog):
     def __init__(self, parent, original_image, apply_callback, default_threshold=50):
         super().__init__(parent)
@@ -205,7 +201,6 @@ class DitherDialog(QDialog):
             ctypes.sizeof(color_ref)
         )
 
-# SaturationDialog: Adjust image saturation (0-200%)
 class SaturationDialog(QDialog):
     def __init__(self, parent, original_image, apply_callback, default_saturation=100):
         super().__init__(parent)
@@ -309,7 +304,6 @@ class SaturationDialog(QDialog):
             ctypes.sizeof(color_ref)
         )
 
-# ScanlinesDialog: Draw black scanlines over image
 class ScanlinesDialog(QDialog):
     def __init__(self, parent, original_image, apply_callback, default_intensity=50, default_thickness=2):
         super().__init__(parent)
@@ -383,7 +377,6 @@ class ScanlinesDialog(QDialog):
             ctypes.sizeof(color_ref)
         )
 
-# --- Noise Effect (was Film Grain) ---
 class NoiseDialog(QDialog):
     def __init__(self, parent, original_image, apply_callback, default_amount=20):
         super().__init__(parent)
@@ -444,7 +437,6 @@ class NoiseDialog(QDialog):
             ctypes.sizeof(color_ref)
         )
 
-# --- Halftone Effect ---
 class HalftoneDialog(QDialog):
     def __init__(self, parent, original_image, apply_callback, default_dot_size=6):
         super().__init__(parent)
@@ -524,7 +516,6 @@ class HalftoneDialog(QDialog):
             ctypes.sizeof(color_ref)
         )
 
-# --- Pixelate Effect ---
 class PixelateDialog(QDialog):
     def __init__(self, parent, original_image, apply_callback, default_blocksize=8):
         super().__init__(parent)
@@ -588,11 +579,10 @@ class PixelateDialog(QDialog):
             ctypes.sizeof(color_ref)
         )
 
-# PixelSortDialog: Sort pixels by brightness, direction and offset, threshold as percentage
 class PixelSortDialog(QDialog):
     def __init__(self, parent, original_image, apply_callback, default_axis=0):
         super().__init__(parent)
-        self.setWindowTitle("Pixel Sort Effect")
+        self.setWindowTitle("Pixel Sort")
         self.setFixedSize(340, 260)
         self.set_titlebar_color(0x010101)
         self.original_image = original_image
@@ -602,16 +592,16 @@ class PixelSortDialog(QDialog):
 
         self.direction_combo = QComboBox()
         self.direction_combo.addItems([
-            "Horizontal Left", "Horizontal Right", "Vertical Top", "Vertical Bottom"
+            "horizontal left", "horizontal right", "vertical top", "vertical bottom"
         ])
-        layout.addWidget(QLabel("Sort Direction:"))
+        layout.addWidget(QLabel("<sort direction>"))
         layout.addWidget(self.direction_combo)
 
         self.threshold_slider = QSlider(Qt.Horizontal)
         self.threshold_slider.setMinimum(0)
         self.threshold_slider.setMaximum(100)
         self.threshold_slider.setValue(0)
-        self.threshold_label = QLabel("Brightness Threshold: 0%")
+        self.threshold_label = QLabel("brightness threshold: 0%")
         layout.addWidget(self.threshold_label)
         layout.addWidget(self.threshold_slider)
 
@@ -619,7 +609,7 @@ class PixelSortDialog(QDialog):
         self.offset_slider.setMinimum(0)
         self.offset_slider.setMaximum(0)
         self.offset_slider.setValue(0)
-        self.offset_label = QLabel("Offset Position: 0px")
+        self.offset_label = QLabel("offset position: 0px")
         layout.addWidget(self.offset_label)
         layout.addWidget(self.offset_slider)
 
@@ -655,8 +645,8 @@ class PixelSortDialog(QDialog):
             self.offset_slider.setValue(0)
 
     def on_slider_changed(self, value):
-        self.threshold_label.setText(f"Brightness Threshold: {self.threshold_slider.value()}%")
-        self.offset_label.setText(f"Offset Position: {self.offset_slider.value()}px")
+        self.threshold_label.setText(f"brightness threshold: {self.threshold_slider.value()}%")
+        self.offset_label.setText(f"offset position: {self.offset_slider.value()}px")
         self.timer.start(300)
 
     def apply_current(self):

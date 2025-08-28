@@ -8,10 +8,10 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QFileDialog, QVBoxLayout, QGraphicsView,
     QGraphicsScene, QGraphicsPixmapItem, QHBoxLayout, QLabel, QStackedLayout,
     QMenuBar, QMenu, QAction, QSplitter, QDialog, QFormLayout, QLineEdit,
-    QCheckBox, QDialogButtonBox, QSizePolicy, QMainWindow
+    QCheckBox, QDialogButtonBox
 )
 from PyQt5.QtGui import QPixmap, QImage, QColor, QFontDatabase, QFont, QPainter, QIcon, QPen
-from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QRect
+from PyQt5.QtCore import Qt, pyqtSignal
 
 from style import DARK_MODE
 from effects import (
@@ -25,15 +25,13 @@ from effects import (
     PixelSortDialog
 )
 
-# Constants for recent file management
 MAX_RECENT = 5
 RECENT_FILE = os.path.join(os.getenv("APPDATA"), "ManipulateRecent.json")
 
-DWMWA_USE_IMMERSIVE_DARK_MODE = 20  # for dark mode, Windows 10+
-DWMWA_CAPTION_COLOR = 35  # custom title bar color
-DWMWA_TEXT_COLOR = 36  # custom text color
+DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+DWMWA_CAPTION_COLOR = 35
+DWMWA_TEXT_COLOR = 36
 
-# --- CanvasView: Custom QGraphicsView for displaying and interacting with images ---
 from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QPainter, QPixmap, QBrush, QColor
 from PyQt5.QtWidgets import QGraphicsView
@@ -52,7 +50,6 @@ class CanvasView(QGraphicsView):
 
         self.setSceneRect(-16384, -16384, 32768, 32768)
 
-        # Create checkerboard tile
         tile_size = 64
         pixmap = QPixmap(tile_size * 2, tile_size * 2)
         pixmap.fill(QColor(19, 19, 19))
@@ -63,7 +60,6 @@ class CanvasView(QGraphicsView):
         self.checkerboard_brush = QBrush(pixmap)
 
     def drawBackground(self, painter: QPainter, rect: QRectF):
-        # Draw the checkerboard pattern first
         painter.fillRect(rect, self.checkerboard_brush)
         super().drawBackground(painter, rect)
 
@@ -98,17 +94,14 @@ class CanvasView(QGraphicsView):
         else:
             super().mouseReleaseEvent(event)
 
-# --- StartPage: Initial landing page with recent images and import button ---
 class StartPage(QWidget):
     def __init__(self, recent_images, import_callback, recent_callback):
         super().__init__()
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        # Title
         title_layout = QHBoxLayout()
-        title_layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)  # vertically center the text with the logo
+        title_layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
-        # Logo
         filepath = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
         logo = QLabel()
         pixmap = QPixmap(filepath)
@@ -116,14 +109,11 @@ class StartPage(QWidget):
         logo.setPixmap(scaled_pixmap)
         title_layout.addWidget(logo)
 
-        # Title
         title = QLabel("manipulate")
         title.setStyleSheet("font-family: 'Minecraft'; font-size: 64px; margin-left: 12px;")
         title_layout.addWidget(title)
 
-        # Add horizontal layout to main layout
         layout.addLayout(title_layout)
-        # Import button
         import_btn = QPushButton("> import image")
         import_btn.clicked.connect(import_callback)
         layout.addWidget(import_btn, alignment=Qt.AlignLeft)
@@ -131,7 +121,6 @@ class StartPage(QWidget):
         divider = QLabel(". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .")
         layout.addWidget(divider, alignment=Qt.AlignLeft)
 
-        # Recent images list
         recent_label = QLabel("recent images >")
         layout.addWidget(recent_label, alignment=Qt.AlignLeft)
         self.recent_buttons = []
@@ -143,7 +132,6 @@ class StartPage(QWidget):
             self.recent_buttons.append(btn)
         self.setLayout(layout)
 
-    # Update recent images list
     def update_recents(self, recent_images, recent_callback):
         for btn in self.recent_buttons:
             btn.setParent(None)
@@ -155,17 +143,19 @@ class StartPage(QWidget):
             self.layout().addWidget(btn, alignment=Qt.AlignLeft)
             self.recent_buttons.append(btn)
 
-# --- ResizeDialog: Dialog for resizing images with aspect ratio lock ---
 class ResizeDialog(QDialog):
     resized = pyqtSignal(int, int)
     def __init__(self, orig_w, orig_h):
         super().__init__()
+
         self.setWindowTitle("resize image")
         self.setFixedSize(260, 120)
         self.setStyleSheet(DARK_MODE)
+
         self.orig_w = orig_w
         self.orig_h = orig_h
         self.aspect = orig_w / orig_h if orig_h != 0 else 1
+        
         layout = QFormLayout()
         self.width_edit = QLineEdit(str(orig_w))
         self.height_edit = QLineEdit(str(orig_h))
@@ -178,7 +168,6 @@ class ResizeDialog(QDialog):
         layout.addRow(buttons)
         self.setLayout(layout)
 
-        # Aspect ratio logic
         self.width_edit.textChanged.connect(self.update_height)
         self.height_edit.textChanged.connect(self.update_width)
         buttons.accepted.connect(self.accept)
@@ -214,11 +203,9 @@ class ResizeDialog(QDialog):
         except Exception:
             return self.orig_w, self.orig_h
 
-# --- ImageEditor: Main application window and logic ---
 class ImageEditor(QWidget):
     def __init__(self):
         super().__init__()
-        # Set up main window, font, and style
         self.setWindowTitle("Manipulate")
         self.resize(900, 600)
         font_path = os.path.join(os.path.dirname(__file__), "fonts", "lcd.TTF")
@@ -237,10 +224,8 @@ class ImageEditor(QWidget):
 
         self.set_titlebar_color(0x010101)
 
-        # Recent images management
         self.recent_images = self.load_recent_images()
 
-        # Graphics scene and canvas for image display
         self.scene = QGraphicsScene()
         self.canvas = CanvasView()
         self.canvas.setScene(self.scene)
@@ -248,11 +233,9 @@ class ImageEditor(QWidget):
         self.current_image_path = None
         self.inverted_pixmap = None
 
-        # Undo/Redo stacks for image edits
         self.undo_stack = []
         self.redo_stack = []
 
-        # Stacked layout: start page and canvas page
         self.stacked_layout = QStackedLayout()
         self.start_page = StartPage(
             self.recent_images,
@@ -260,12 +243,10 @@ class ImageEditor(QWidget):
             self.load_recent_image
         )
 
-        # Sidebar with effect/action buttons
         self.sidebar = QWidget()
         sidebar_layout = QVBoxLayout()
         sidebar_layout.setAlignment(Qt.AlignTop)
 
-        # Add buttons for all effects and actions
         self.invert_btn = QPushButton("invert")
         self.invert_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.invert_btn.clicked.connect(self.invert_image)
@@ -300,7 +281,6 @@ class ImageEditor(QWidget):
         self.sidebar.setLayout(sidebar_layout)
         self.sidebar.setStyleSheet("background-color: #222; border-left: 2px solid #444;")
 
-        # --- Add these lines for new effects ---
         self.scanlines_btn = QPushButton("scanlines")
         self.scanlines_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.scanlines_btn.clicked.connect(self.scanlines_dialog)
@@ -320,9 +300,7 @@ class ImageEditor(QWidget):
         self.pixelsort_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.pixelsort_btn.clicked.connect(self.pixelsort_dialog)
         sidebar_layout.addWidget(self.pixelsort_btn)
-        # --- End new effect buttons ---
 
-        # Canvas page with sidebar
         self.splitter = QSplitter(Qt.Horizontal)
         self.splitter.addWidget(self.canvas)
         self.splitter.addWidget(self.sidebar)
@@ -336,10 +314,9 @@ class ImageEditor(QWidget):
         self.stacked_layout.addWidget(self.start_page)
         self.stacked_layout.addWidget(canvas_page)
 
-        # Menu bar setup (File/Edit)
         self.menu_bar = QMenuBar(self)
         file_menu = QMenu("&File", self)
-        # ...add actions for open, close, undo, redo, recent, exit...
+
         open_action = QAction("&Open Image...", self)
         open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self.load_image_dialog)
@@ -376,37 +353,27 @@ class ImageEditor(QWidget):
 
         self.menu_bar.addMenu(file_menu)
 
-        # Edit menu (resize)
         edit_menu = QMenu("&Edit", self)
         resize_action = QAction("&Resize Image...", self)
         resize_action.triggered.connect(self.open_resize_dialog)
         edit_menu.addAction(resize_action)
         self.menu_bar.addMenu(edit_menu)
 
-        # Keyboard shortcut for zoom (Z)
         self.shortcut_zoom = QAction(self)
         self.shortcut_zoom.setShortcut("Z")
         self.shortcut_zoom.triggered.connect(self.zoom_100)
         self.addAction(self.shortcut_zoom)
 
-        # Main layout
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Menu bar (goes under title bar)
-        main_layout.addWidget(self.menu_bar)   # <-- instead of setMenuBar()
+        main_layout.addWidget(self.menu_bar)
 
-        # Then your main stacked content
         main_layout.addLayout(self.stacked_layout)
 
         self.setLayout(main_layout)
 
-
-    # --- Image loading, saving, undo/redo, and effect application methods ---
-    # Each method is commented to explain its purpose and logic
-
     def close_image(self):
-        # Clear current image and reset state
         self.scene.clear()
         self.image_item = None
         self.current_image_path = None
@@ -417,14 +384,12 @@ class ImageEditor(QWidget):
         self.show_start_page()
 
     def clear_recents(self):
-        # Clear recent images list
         self.recent_images = []
         self.save_recent_images()
         self.start_page.update_recents(self.recent_images, self.load_recent_image)
         self.update_recent_menu()
 
     def update_recent_menu(self):
-        # Update recent images menu
         self.recent_menu.clear()
         for path in self.recent_images:
             action = QAction(path, self)
@@ -436,15 +401,12 @@ class ImageEditor(QWidget):
             self.recent_menu.addAction(no_recent_action)
 
     def show_start_page(self):
-        # Show start page
         self.stacked_layout.setCurrentIndex(0)
 
     def show_canvas(self):
-        # Show canvas page
         self.stacked_layout.setCurrentIndex(1)
 
     def add_to_recent(self, path):
-        # Add image path to recent list
         if path in self.recent_images:
             self.recent_images.remove(path)
         self.recent_images.insert(0, path)
@@ -455,18 +417,15 @@ class ImageEditor(QWidget):
         self.update_recent_menu()
 
     def load_image_dialog(self):
-        # Open file dialog to load image
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Image", "",
                                                    "Image Files (*.png *.jpg *.jpeg *.bmp *.gif)")
         if file_path:
             self.load_image(file_path)
 
     def load_recent_image(self, path):
-        # Load image from recent list
         self.load_image(path)
 
     def load_image(self, file_path):
-        # Load image and display on canvas
         pixmap = QPixmap(file_path)
         if not pixmap.isNull():
             self.scene.clear()
@@ -485,14 +444,12 @@ class ImageEditor(QWidget):
             self.show_canvas()
 
     def push_undo(self, pixmap):
-        # Add current image to undo stack
         self.undo_stack.append(pixmap.copy())
         if len(self.undo_stack) > 20:
             self.undo_stack.pop(0)
         self.redo_stack.clear()
 
     def undo(self):
-        # Undo last image edit
         if len(self.undo_stack) > 1:
             current = self.undo_stack.pop()
             self.redo_stack.append(current)
@@ -506,7 +463,6 @@ class ImageEditor(QWidget):
             self.save_image_btn.setEnabled(True)
 
     def redo(self):
-        # Redo last undone edit
         if self.redo_stack:
             pixmap = self.redo_stack.pop()
             self.push_undo(pixmap)
@@ -519,7 +475,6 @@ class ImageEditor(QWidget):
             self.save_image_btn.setEnabled(True)
 
     def invert_image(self):
-        # Invert image colors
         if self.image_item:
             original_image = self.image_item.pixmap()
             image = original_image.toImage().convertToFormat(QImage.Format_ARGB32)
@@ -538,7 +493,6 @@ class ImageEditor(QWidget):
             self.push_undo(new_pixmap)
 
     def save_image_as(self):
-        # Save current image to file
         if self.image_item:
             file_path, _ = QFileDialog.getSaveFileName(self, "Save Image As", "",
                                                        "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;Bitmap Image (*.bmp)")
@@ -546,7 +500,6 @@ class ImageEditor(QWidget):
                 self.image_item.pixmap().save(file_path)
 
     def open_resize_dialog(self):
-        # Open resize dialog
         if self.image_item:
             img = self.image_item.pixmap().toImage()
             orig_w = img.width()
@@ -557,7 +510,6 @@ class ImageEditor(QWidget):
                 self.resize_image(w, h)
 
     def resize_image(self, w, h):
-        # Resize image to given dimensions
         if self.image_item:
             original_image = self.image_item.pixmap()
             scaled = original_image.scaled(w, h, Qt.KeepAspectRatio, Qt.SmoothTransformation)
@@ -571,14 +523,10 @@ class ImageEditor(QWidget):
             self.push_undo(scaled)
 
     def zoom_100(self):
-        # Fit image to canvas window, like initial import
         if self.image_item:
             self.canvas.resetTransform()
             self.canvas.fitInView(self.image_item, Qt.KeepAspectRatio)
             self.canvas.centerOn(self.image_item)
-
-    # --- Effect dialog launchers ---
-    # Each launches the corresponding dialog and handles undo stack
 
     def compression_dialog(self):
         if self.image_item:
@@ -669,7 +617,6 @@ class ImageEditor(QWidget):
                 self.set_canvas_pixmap(original_image)
 
     def set_canvas_pixmap(self, pixmap):
-        # Set image on canvas and enable save
         self.scene.clear()
         self.image_item = QGraphicsPixmapItem(pixmap)
         self.scene.addItem(self.image_item)
@@ -679,7 +626,6 @@ class ImageEditor(QWidget):
         self.save_image_btn.setEnabled(True)
 
     def load_recent_images(self):
-        # Load recent images from file
         if os.path.exists(RECENT_FILE):
             try:
                 with open(RECENT_FILE, "r") as f:
@@ -691,7 +637,6 @@ class ImageEditor(QWidget):
         return []
 
     def save_recent_images(self):
-        # Save recent images to file
         try:
             with open(RECENT_FILE, "w") as f:
                 json.dump(self.recent_images, f)
@@ -708,9 +653,7 @@ class ImageEditor(QWidget):
             ctypes.sizeof(color_ref)
         )
 
-# --- Application entry point ---
 if __name__ == "__main__":
-    # Create and run the application
     app = QApplication(sys.argv)
 
     icon_path = os.path.join(os.path.dirname(__file__), "assets", "icon.ico")
