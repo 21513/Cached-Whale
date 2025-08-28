@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QPixmap, QImage, QColor, QFontDatabase, QFont, QPainter, QIcon
 from PyQt5 import QtGui  # For QIntValidator used in HalftoneDialog
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 
 from style import DARK_MODE
 from effects import (
@@ -240,26 +240,33 @@ class ImageEditor(QWidget):
         self.sidebar = QWidget()
         sidebar_layout = QVBoxLayout()
         sidebar_layout.setAlignment(Qt.AlignTop)
+
         # Add buttons for all effects and actions
         self.invert_btn = QPushButton("Invert Colors")
         self.invert_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.invert_btn.clicked.connect(self.invert_image)
+
         self.dither_btn = QPushButton("Dither Effect")
         self.dither_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.dither_btn.clicked.connect(self.dither_dialog)
+
         self.compression_btn = QPushButton("JPEG Compression")
         self.compression_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.compression_btn.clicked.connect(self.compression_dialog)
+
         self.grayscale_btn = QPushButton("Saturation")
         self.grayscale_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.grayscale_btn.clicked.connect(self.saturation_dialog)
+
         self.pixelate_btn = QPushButton("Pixelate")
         self.pixelate_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.pixelate_btn.clicked.connect(self.pixelate_dialog)
+
         self.save_image_btn = QPushButton("Save Image As")
         self.save_image_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.save_image_btn.clicked.connect(self.save_image_as)
         self.save_image_btn.setEnabled(False)
+        
         sidebar_layout.addWidget(self.invert_btn)
         sidebar_layout.addWidget(self.dither_btn)
         sidebar_layout.addWidget(self.compression_btn)
@@ -360,10 +367,24 @@ class ImageEditor(QWidget):
 
         # Main layout
         main_layout = QVBoxLayout()
-        main_layout.setMenuBar(self.menu_bar)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Custom title bar (goes first, at very top)
+        self.title_bar = CustomTitleBar(
+            self,
+            title="Manipulate",
+            icon_path=os.path.join(os.path.dirname(__file__), "assets", "icon.ico")
+        )
+        main_layout.addWidget(self.title_bar)
+
+        # Menu bar (goes under title bar)
+        main_layout.addWidget(self.menu_bar)   # <-- instead of setMenuBar()
+
+        # Then your main stacked content
         main_layout.addLayout(self.stacked_layout)
+
         self.setLayout(main_layout)
-        self.show_start_page()
+
 
     # --- Image loading, saving, undo/redo, and effect application methods ---
     # Each method is commented to explain its purpose and logic
@@ -660,6 +681,69 @@ class ImageEditor(QWidget):
                 json.dump(self.recent_images, f)
         except Exception:
             pass
+
+class CustomTitleBar(QWidget):
+    def __init__(self, parent=None, title="Manipulate", icon_path=None):
+        super().__init__(parent)
+        self.parent = parent
+        self.setFixedHeight(32)
+        self.setStyleSheet("background-color: #111; color: #0f0;")
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(5, 0, 5, 0)
+
+        # Optional icon
+        if icon_path:
+            self.setWindowIcon(QIcon(icon_path))
+
+        # Title label
+        self.title = QLabel(title)
+        self.title.setStyleSheet("font-weight: bold; font-size: 14px;")
+        layout.addWidget(self.title)
+
+        layout.addStretch()
+
+        # Minimize
+        self.min_btn = QPushButton("–")
+        self.min_btn.setFixedSize(32, 24)
+        self.min_btn.clicked.connect(self.parent.showMinimized)
+        layout.addWidget(self.min_btn)
+
+        # Max/Restore
+        self.max_btn = QPushButton("□")
+        self.max_btn.setFixedSize(32, 24)
+        self.max_btn.clicked.connect(self.toggle_max_restore)
+        layout.addWidget(self.max_btn)
+
+        # Close
+        self.close_btn = QPushButton("✕")
+        self.close_btn.setFixedSize(32, 24)
+        self.close_btn.clicked.connect(self.parent.close)
+        layout.addWidget(self.close_btn)
+
+        self.setLayout(layout)
+        self._mouse_pos = None
+
+    # --- Dragging the window ---
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._mouse_pos = event.globalPos() - self.parent.frameGeometry().topLeft()
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        if self._mouse_pos and event.buttons() == Qt.LeftButton:
+            self.parent.move(event.globalPos() - self._mouse_pos)
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        self._mouse_pos = None
+
+    # --- Maximize/Restore toggle ---
+    def toggle_max_restore(self):
+        if self.parent.isMaximized():
+            self.parent.showNormal()
+        else:
+            self.parent.showMaximized()
 
 # --- Application entry point ---
 if __name__ == "__main__":
