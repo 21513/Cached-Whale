@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QImage, QColor, QFontDatabase, QFont, QPainter, QIcon, QPen
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QRect
 
-from style import DARK_MODE, TITLE_BAR, WINDOW_BUTTON, CLOSE_BUTTON
+from style import DARK_MODE
 from effects import (
     CompressionDialog,
     DitherDialog,
@@ -127,6 +127,10 @@ class StartPage(QWidget):
         import_btn = QPushButton("> import image")
         import_btn.clicked.connect(import_callback)
         layout.addWidget(import_btn, alignment=Qt.AlignLeft)
+
+        divider = QLabel(". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .")
+        layout.addWidget(divider, alignment=Qt.AlignLeft)
+
         # Recent images list
         recent_label = QLabel("recent images >")
         layout.addWidget(recent_label, alignment=Qt.AlignLeft)
@@ -262,11 +266,11 @@ class ImageEditor(QWidget):
         sidebar_layout.setAlignment(Qt.AlignTop)
 
         # Add buttons for all effects and actions
-        self.invert_btn = QPushButton("invert colors")
+        self.invert_btn = QPushButton("invert")
         self.invert_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.invert_btn.clicked.connect(self.invert_image)
 
-        self.dither_btn = QPushButton("dither effect")
+        self.dither_btn = QPushButton("dither")
         self.dither_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.dither_btn.clicked.connect(self.dither_dialog)
 
@@ -282,7 +286,7 @@ class ImageEditor(QWidget):
         self.pixelate_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.pixelate_btn.clicked.connect(self.pixelate_dialog)
 
-        self.save_image_btn = QPushButton("save image as")
+        self.save_image_btn = QPushButton("save as")
         self.save_image_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.save_image_btn.clicked.connect(self.save_image_as)
         self.save_image_btn.setEnabled(False)

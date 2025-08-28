@@ -1,4 +1,8 @@
+import sys
+import os
 import numpy as np
+import ctypes
+
 # PyQt5 imports for GUI components and image manipulation
 from PyQt5.QtWidgets import (
     QVBoxLayout,
@@ -13,12 +17,17 @@ from PyQt5.QtGui import QPixmap, QImage, QColor, QPainter, QTransform
 from PyQt5 import QtGui  # For QIntValidator used in HalftoneDialog
 from PyQt5.QtCore import Qt, QBuffer, QIODevice, QTimer
 
+DWMWA_USE_IMMERSIVE_DARK_MODE = 20  # for dark mode, Windows 10+
+DWMWA_CAPTION_COLOR = 35  # custom title bar color
+DWMWA_TEXT_COLOR = 36  # custom text color
+
 # CompressionDialog: JPEG compression Compression
 class CompressionDialog(QDialog):
     def __init__(self, parent, original_image, apply_callback, default_quality=10):
         super().__init__(parent)
         self.setWindowTitle("JPEG Compression")
         self.setFixedSize(320, 180)  # Increased size
+        self.set_titlebar_color(0x010101)
         self.original_image = original_image
         self.apply_callback = apply_callback
         layout = QVBoxLayout()
@@ -59,15 +68,34 @@ class CompressionDialog(QDialog):
     def get_pixmap(self):
         return self._last_pixmap
 
+    def set_titlebar_color(self, color):
+        hwnd = int(self.winId())
+        color_ref = ctypes.c_uint(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_ref),
+            ctypes.sizeof(color_ref)
+        )
+
 # DitherDialog: Dithering effect (threshold as percentage)
 class DitherDialog(QDialog):
     def __init__(self, parent, original_image, apply_callback, default_threshold=50):
         super().__init__(parent)
         self.setWindowTitle("Dither Effect")
-        self.setFixedSize(320, 180)  # Increased size
+        self.setFixedSize(360, 240)
         self.original_image = original_image
         self.apply_callback = apply_callback
+
         layout = QVBoxLayout()
+
+        # Dropdown for dither method
+        self.method_combo = QComboBox()
+        self.method_combo.addItems(["Threshold", "Floyd-Steinberg", "Bayer/Ordered", "Random"])
+        layout.addWidget(QLabel("Dither Method:"))
+        layout.addWidget(self.method_combo)
+
+        # Threshold slider
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setMinimum(0)
         self.slider.setMaximum(100)
@@ -75,58 +103,105 @@ class DitherDialog(QDialog):
         self.threshold_label = QLabel(f"Threshold: {default_threshold}%")
         layout.addWidget(self.threshold_label)
         layout.addWidget(self.slider)
+
+        # OK / Cancel buttons
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         layout.addWidget(buttons)
         self.setLayout(layout)
+
+        # Signals
         self.slider.valueChanged.connect(self.on_slider_changed)
+        self.method_combo.currentIndexChanged.connect(self.apply_current)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
+
         self._last_pixmap = original_image
 
-        # Debounce timer
+        # Debounce timer for preview
         self.timer = QTimer(self)
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self.apply_current)
 
-        # Preview on open
+        # Preview immediately
         self.apply_current()
 
     def on_slider_changed(self, value):
         self.threshold_label.setText(f"Threshold: {self.slider.value()}%")
-        self.timer.start(500)
+        self.timer.start(200)
 
     def apply_current(self):
+        method = self.method_combo.currentText()
         value = self.slider.value()
-        original_image = self.original_image
-        image = original_image.toImage().convertToFormat(QImage.Format_ARGB32)
-        ptr = image.bits()
-        ptr.setsize(image.byteCount())
-        arr = np.frombuffer(ptr, np.uint8).reshape((image.height(), image.width(), 4))
-        gray = (0.299 * arr[..., 2] + 0.587 * arr[..., 1] + 0.114 * arr[..., 0]).astype(np.int16)
+        img = self.original_image.toImage().convertToFormat(QImage.Format_ARGB32)
+        ptr = img.bits()
+        ptr.setsize(img.byteCount())
+        arr = np.frombuffer(ptr, np.uint8).reshape((img.height(), img.width(), 4))
+
+        gray = (0.299*arr[..., 2] + 0.587*arr[..., 1] + 0.114*arr[..., 0]).astype(np.int16)
         threshold = int(255 * value / 100)
-        dithered = np.zeros_like(gray)
-        err = np.zeros_like(gray, dtype=np.int16)
-        h, w = gray.shape
-        for y in range(h):
-            old_row = gray[y] + err[y]
-            new_row = np.where(old_row < threshold, 0, 255)
-            dithered[y] = new_row
-            quant_error = old_row - new_row
-            if y + 1 < h:
-                err[y + 1, :-1] += (quant_error[1:] * 3) // 16
-                err[y + 1] += (quant_error * 5) // 16
-                err[y + 1, 1:] += (quant_error[:-1] * 1) // 16
-            if y < h and w > 1:
-                err[y, 1:] += (quant_error[:-1] * 7) // 16
-        arr[..., 0] = dithered.clip(0, 255)
-        arr[..., 1] = dithered.clip(0, 255)
-        arr[..., 2] = dithered.clip(0, 255)
-        pixmap = QPixmap.fromImage(image)
+
+        # Apply threshold as a “contrast cutoff”: pixels below threshold are forced black
+        below_thresh_mask = gray < threshold
+        gray_above = gray.copy()
+        gray_above[below_thresh_mask] = threshold  # pixels below threshold set to threshold
+
+        if method == "Threshold":
+            dithered = np.where(gray < threshold, 0, 255)
+        elif method == "Floyd-Steinberg":
+            dithered = np.zeros_like(gray)
+            err = np.zeros_like(gray, dtype=np.int16)
+            h, w = gray.shape
+            for y in range(h):
+                old_row = gray_above[y] + err[y]
+                new_row = np.where(old_row < threshold, 0, 255)
+                dithered[y] = new_row
+                quant_error = old_row - new_row
+                if y+1 < h:
+                    err[y+1,:-1] += (quant_error[1:] * 3) // 16
+                    err[y+1] += (quant_error * 5) // 16
+                    err[y+1,1:] += (quant_error[:-1] * 1) // 16
+                if w > 1:
+                    err[y,1:] += (quant_error[:-1] * 7) // 16
+        elif method == "Bayer/Ordered":
+            # 4x4 Bayer matrix
+            bayer = np.array([
+                [0,  8,  2, 10],
+                [12, 4, 14, 6],
+                [3, 11, 1,  9],
+                [15, 7, 13, 5]
+            ]) / 16 * 255
+            H, W = gray.shape
+            tiled = np.tile(bayer, (H//4+1, W//4+1))[:H, :W]
+            dithered = np.where(gray_above > tiled, 255, 0)
+        elif method == "Random":
+            noise = np.random.randint(0, 256, gray.shape)
+            dithered = np.where(gray_above > noise, 255, 0)
+        else:
+            dithered = gray
+
+        # Force below-threshold pixels to black
+        dithered[below_thresh_mask] = 0
+
+        arr[..., 0] = dithered
+        arr[..., 1] = dithered
+        arr[..., 2] = dithered
+
+        pixmap = QPixmap.fromImage(img)
         self._last_pixmap = pixmap
         self.apply_callback(pixmap)
 
     def get_pixmap(self):
         return self._last_pixmap
+    
+    def set_titlebar_color(self, color):
+        hwnd = int(self.winId())
+        color_ref = ctypes.c_uint(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_ref),
+            ctypes.sizeof(color_ref)
+        )
 
 # SaturationDialog: Adjust image saturation (0-200%)
 class SaturationDialog(QDialog):
@@ -134,6 +209,7 @@ class SaturationDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Saturation Effect")
         self.setFixedSize(320, 180)
+        self.set_titlebar_color(0x010101)
         self.original_image = original_image
         self.apply_callback = apply_callback
         layout = QVBoxLayout()
@@ -220,6 +296,16 @@ class SaturationDialog(QDialog):
 
     def get_pixmap(self):
         return self._last_pixmap
+    
+    def set_titlebar_color(self, color):
+        hwnd = int(self.winId())
+        color_ref = ctypes.c_uint(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_ref),
+            ctypes.sizeof(color_ref)
+        )
 
 # ScanlinesDialog: Draw black scanlines over image
 class ScanlinesDialog(QDialog):
@@ -227,6 +313,7 @@ class ScanlinesDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Scanlines Effect")
         self.setFixedSize(320, 180)
+        self.set_titlebar_color(0x010101)
         self.original_image = original_image
         self.apply_callback = apply_callback
         layout = QVBoxLayout()
@@ -283,6 +370,16 @@ class ScanlinesDialog(QDialog):
 
     def get_pixmap(self):
         return self._last_pixmap
+    
+    def set_titlebar_color(self, color):
+        hwnd = int(self.winId())
+        color_ref = ctypes.c_uint(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_ref),
+            ctypes.sizeof(color_ref)
+        )
 
 # --- Noise Effect (was Film Grain) ---
 class NoiseDialog(QDialog):
@@ -290,6 +387,7 @@ class NoiseDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Noise Effect")
         self.setFixedSize(320, 180)
+        self.set_titlebar_color(0x010101)
         self.original_image = original_image
         self.apply_callback = apply_callback
         layout = QVBoxLayout()
@@ -333,6 +431,16 @@ class NoiseDialog(QDialog):
 
     def get_pixmap(self):
         return self._last_pixmap
+    
+    def set_titlebar_color(self, color):
+        hwnd = int(self.winId())
+        color_ref = ctypes.c_uint(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_ref),
+            ctypes.sizeof(color_ref)
+        )
 
 # --- Halftone Effect ---
 class HalftoneDialog(QDialog):
@@ -340,6 +448,7 @@ class HalftoneDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Halftone Effect")
         self.setFixedSize(340, 180)
+        self.set_titlebar_color(0x010101)
         self.original_image = original_image
         self.apply_callback = apply_callback
         layout = QVBoxLayout()
@@ -402,6 +511,16 @@ class HalftoneDialog(QDialog):
 
     def get_pixmap(self):
         return self._last_pixmap
+    
+    def set_titlebar_color(self, color):
+        hwnd = int(self.winId())
+        color_ref = ctypes.c_uint(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_ref),
+            ctypes.sizeof(color_ref)
+        )
 
 # --- Pixelate Effect ---
 class PixelateDialog(QDialog):
@@ -409,6 +528,7 @@ class PixelateDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Pixelate Effect")
         self.setFixedSize(320, 180)
+        self.set_titlebar_color(0x010101)
         self.original_image = original_image
         self.apply_callback = apply_callback
         layout = QVBoxLayout()
@@ -455,6 +575,16 @@ class PixelateDialog(QDialog):
 
     def get_pixmap(self):
         return self._last_pixmap
+    
+    def set_titlebar_color(self, color):
+        hwnd = int(self.winId())
+        color_ref = ctypes.c_uint(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_ref),
+            ctypes.sizeof(color_ref)
+        )
 
 # PixelSortDialog: Sort pixels by brightness, direction and offset, threshold as percentage
 class PixelSortDialog(QDialog):
@@ -462,6 +592,7 @@ class PixelSortDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Pixel Sort Effect")
         self.setFixedSize(340, 260)
+        self.set_titlebar_color(0x010101)
         self.original_image = original_image
         self.apply_callback = apply_callback
         layout = QVBoxLayout()
@@ -573,3 +704,13 @@ class PixelSortDialog(QDialog):
 
     def get_pixmap(self):
         return self._last_pixmap
+    
+    def set_titlebar_color(self, color):
+        hwnd = int(self.winId())
+        color_ref = ctypes.c_uint(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_ref),
+            ctypes.sizeof(color_ref)
+        )
