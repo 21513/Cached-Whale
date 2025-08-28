@@ -198,9 +198,7 @@ class ImageEditor(QWidget):
     def __init__(self):
         super().__init__()
         # Set up main window, font, and style
-        self.setWindowFlag(Qt.FramelessWindowHint)
-        self.setAttribute(Qt.WA_StyledBackground, True)  # ensures background draws
-        self.setWindowTitle("Image Editor with Canvas")
+        self.setWindowTitle("Manipulate")
         self.resize(900, 600)
         font_path = os.path.join(os.path.dirname(__file__), "fonts", "lcd.TTF")
         if os.path.exists(font_path):
@@ -215,7 +213,6 @@ class ImageEditor(QWidget):
             if families:
                 self.setFont(QFont(families[0], 12))
         self.setStyleSheet(DARK_MODE)
-        self.setWindowFlag(Qt.FramelessWindowHint)
 
         # Recent images management
         self.recent_images = self.load_recent_images()
@@ -372,14 +369,6 @@ class ImageEditor(QWidget):
         # Main layout
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Custom title bar (goes first, at very top)
-        self.title_bar = CustomTitleBar(
-            self,
-            title="Manipulate",
-            icon_path=os.path.join(os.path.dirname(__file__), "assets", "icon.ico")
-        )
-        main_layout.addWidget(self.title_bar)
 
         # Menu bar (goes under title bar)
         main_layout.addWidget(self.menu_bar)   # <-- instead of setMenuBar()
@@ -698,112 +687,6 @@ class ImageEditor(QWidget):
 
         # Draw rectangle inside window edges
         rect = self.rect().adjusted(1, 1, -1, -1)
-        painter.drawRect(rect)
-
-class CustomTitleBar(QWidget):
-    def __init__(self, parent=None, title="Manipulate", icon_path=None):
-        super().__init__(parent)
-        self.parent = parent
-        self.setFixedHeight(24)
-        self.setObjectName("CustomTitleBar")
-
-        self.setStyleSheet(TITLE_BAR)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(8, 0, 8, 0)
-        layout.setSpacing(6)
-
-        # --- Icon (left side) ---
-        if icon_path and os.path.exists(icon_path):
-            icon_label = QLabel()
-            pixmap = QPixmap(icon_path).scaled(
-                20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation
-            )
-            icon_label.setPixmap(pixmap)
-            layout.addWidget(icon_label)
-
-        # --- Title ---
-        self.title = QLabel(title)
-        self.title.setStyleSheet("font-size: 16px;")
-        layout.addWidget(self.title)
-
-        # --- Spacer pushes buttons to the right ---
-        layout.addStretch()
-
-        # --- Buttons container (so they stay flush right) ---
-        self.buttons = QWidget()
-        btn_layout = QHBoxLayout()
-        btn_layout.setContentsMargins(0, 0, 0, 0)
-        btn_layout.setSpacing(0)
-
-        # Minimize
-        self.min_btn = QPushButton("–")
-        self.min_btn.setStyleSheet(WINDOW_BUTTON)
-        self.min_btn.clicked.connect(self.parent.showMinimized)
-        self.min_btn.setCursor(Qt.PointingHandCursor)
-        btn_layout.addWidget(self.min_btn)
-
-        # Max/Restore
-        self.max_btn = QPushButton("□")
-        self.max_btn.setStyleSheet(WINDOW_BUTTON)
-        self.max_btn.clicked.connect(self.toggle_max_restore)
-        self.max_btn.setCursor(Qt.PointingHandCursor)
-        btn_layout.addWidget(self.max_btn)
-
-        # Close
-        self.close_btn = QPushButton("✕")
-        self.close_btn.setStyleSheet(CLOSE_BUTTON)
-        self.close_btn.clicked.connect(self.parent.close)
-        self.close_btn.setCursor(Qt.PointingHandCursor)
-        btn_layout.addWidget(self.close_btn)
-
-        self.buttons.setLayout(btn_layout)
-        layout.addWidget(self.buttons)
-
-        self.setLayout(layout)
-        self._mouse_pos = None
-
-    # --- Dragging support ---
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self._mouse_pos = event.globalPos() - self.parent.frameGeometry().topLeft()
-            event.accept()
-
-    def mouseMoveEvent(self, event):
-        if self._mouse_pos and event.buttons() == Qt.LeftButton:
-            self.parent.move(event.globalPos() - self._mouse_pos)
-            event.accept()
-
-    def mouseReleaseEvent(self, event):
-        self._mouse_pos = None
-
-    # --- Maximize/Restore ---
-    def toggle_max_restore(self):
-        if self.parent.isMaximized():
-            self.parent.showNormal()
-        else:
-            self.parent.showMaximized()
-
-    def mouseDoubleClickEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.toggle_max_restore()
-            event.accept()
-        else:
-            super().mouseDoubleClickEvent(event)
-    
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor("#101010"))  # full background
-        super().paintEvent(event)
-
-        # Draw 2px white border on top of everything
-        painter.setRenderHint(QPainter.Antialiasing)
-        pen = QPen(QColor("white"), 2)
-        painter.setPen(pen)
-        painter.setBrush(Qt.NoBrush)
-
-        # Draw rectangle inside window edges
-        rect = self.rect().adjusted(1, 1, -1, 1)
         painter.drawRect(rect)
 
 # --- Application entry point ---
