@@ -29,14 +29,6 @@ QMenuBar {
     background-color: #010101;
 }
 
-QMenuBar:hover {
-    background-color: #101010;
-}
-
-QMenuBar:hover {
-    background-color: #101010;
-}
-
 QMenu {
     background-color: #010101;
     color: #ffffff;
