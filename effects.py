@@ -2,6 +2,8 @@ import sys
 import os
 import numpy as np
 import ctypes
+import cupy as cp
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # PyQt5 imports for GUI components and image manipulation
 from PyQt5.QtWidgets import (
@@ -595,18 +597,16 @@ class PixelSortDialog(QDialog):
         self.set_titlebar_color(0x010101)
         self.original_image = original_image
         self.apply_callback = apply_callback
+
         layout = QVBoxLayout()
 
-        # Dropdown for sort direction
         self.direction_combo = QComboBox()
         self.direction_combo.addItems([
             "Horizontal Left", "Horizontal Right", "Vertical Top", "Vertical Bottom"
         ])
-        self.direction_combo.setStyleSheet("padding: 8px;")
         layout.addWidget(QLabel("Sort Direction:"))
         layout.addWidget(self.direction_combo)
 
-        # Slider for brightness threshold (percentage)
         self.threshold_slider = QSlider(Qt.Horizontal)
         self.threshold_slider.setMinimum(0)
         self.threshold_slider.setMaximum(100)
@@ -615,10 +615,9 @@ class PixelSortDialog(QDialog):
         layout.addWidget(self.threshold_label)
         layout.addWidget(self.threshold_slider)
 
-        # Slider for offset position
         self.offset_slider = QSlider(Qt.Horizontal)
         self.offset_slider.setMinimum(0)
-        self.offset_slider.setMaximum(0)  # will be set dynamically
+        self.offset_slider.setMaximum(0)
         self.offset_slider.setValue(0)
         self.offset_label = QLabel("Offset Position: 0px")
         layout.addWidget(self.offset_label)
@@ -633,14 +632,13 @@ class PixelSortDialog(QDialog):
         self.offset_slider.valueChanged.connect(self.on_slider_changed)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
+
         self._last_pixmap = original_image
         self.timer = QTimer(self)
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self.apply_current)
 
-        # Set offset slider range based on image size and direction
         self._update_offset_slider()
-        # Preview on open
         self.apply_current()
 
     def on_direction_changed(self, idx):
@@ -650,9 +648,9 @@ class PixelSortDialog(QDialog):
     def _update_offset_slider(self):
         if self.original_image:
             img = self.original_image.toImage()
-            if self.direction_combo.currentIndex() in [0, 1]:  # Horizontal
+            if self.direction_combo.currentIndex() in [0, 1]:
                 self.offset_slider.setMaximum(img.width() - 1)
-            else:  # Vertical
+            else:
                 self.offset_slider.setMaximum(img.height() - 1)
             self.offset_slider.setValue(0)
 
@@ -674,43 +672,43 @@ class PixelSortDialog(QDialog):
         threshold = int(255 * threshold_percent / 100)
         if threshold == 0:
             threshold = -1
-        if direction in [0, 1]:  # Horizontal
-            for y in range(arr.shape[0]):
-                row = arr[y, :, 0:3]
-                brightness = row.mean(axis=1)
-                mask = (brightness > threshold) & (np.arange(row.shape[0]) >= offset)
-                if direction == 0:  # Left
-                    sorted_row = row.copy()
-                    sorted_row[mask] = row[mask][np.argsort(brightness[mask])]
-                else:  # Right
-                    sorted_row = row.copy()
-                    sorted_row[mask] = row[mask][np.argsort(brightness[mask])[::-1]]
-                arr[y, :, 0:3] = sorted_row
-        else:  # Vertical
-            for x in range(arr.shape[1]):
-                col = arr[:, x, 0:3]
-                brightness = col.mean(axis=1)
-                mask = (brightness > threshold) & (np.arange(col.shape[0]) >= offset)
-                if direction == 2:  # Top
-                    sorted_col = col.copy()
-                    sorted_col[mask] = col[mask][np.argsort(brightness[mask])]
-                else:  # Bottom
-                    sorted_col = col.copy()
-                    sorted_col[mask] = col[mask][np.argsort(brightness[mask])[::-1]]
-                arr[:, x, 0:3] = sorted_col
+
+        # Move RGB array to GPU
+        gpu_arr = cp.asarray(arr[..., :3])
+        H, W = gpu_arr.shape[:2]
+
+        brightness = gpu_arr.mean(axis=2)  # H x W
+
+        if direction in [0, 1]:  # horizontal
+            mask = cp.arange(W)[None, :] >= offset
+            mask = mask & (brightness > threshold)
+            indices = cp.argsort(cp.where(mask, brightness, -cp.inf), axis=1)
+            sorted_arr = cp.take_along_axis(gpu_arr, indices[:, :, None], axis=1)
+            if direction == 1:  # right
+                sorted_arr = sorted_arr[:, ::-1, :]
+        else:  # vertical
+            mask = cp.arange(H)[:, None] >= offset
+            mask = mask & (brightness > threshold)
+            indices = cp.argsort(cp.where(mask, brightness, -cp.inf), axis=0)
+            sorted_arr = cp.take_along_axis(gpu_arr, indices[:, :, None], axis=0)
+            if direction == 3:  # bottom
+                sorted_arr = sorted_arr[::-1, :, :]
+
+        arr[..., :3] = cp.asnumpy(sorted_arr)
+
         pixmap = QPixmap.fromImage(image)
         self._last_pixmap = pixmap
         self.apply_callback(pixmap)
 
     def get_pixmap(self):
         return self._last_pixmap
-    
+
     def set_titlebar_color(self, color):
         hwnd = int(self.winId())
         color_ref = ctypes.c_uint(color)
         ctypes.windll.dwmapi.DwmSetWindowAttribute(
             hwnd,
-            DWMWA_CAPTION_COLOR,
+            35,
             ctypes.byref(color_ref),
             ctypes.sizeof(color_ref)
         )

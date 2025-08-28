@@ -552,7 +552,7 @@ class ImageEditor(QWidget):
             orig_w = img.width()
             orig_h = img.height()
             dlg = ResizeDialog(orig_w, orig_h)
-            if dlg.exec_() == QDialog.Accepted:
+            if dlg.show() == QDialog.Accepted:
                 w, h = dlg.get_size()
                 self.resize_image(w, h)
 
@@ -584,7 +584,7 @@ class ImageEditor(QWidget):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = CompressionDialog(self, original_image, self.set_canvas_pixmap, default_quality=10)
-            result = dlg.exec_()
+            result = dlg.show()
             if result == QDialog.Accepted:
                 pixmap = dlg.get_pixmap()
                 self.push_undo(pixmap)
@@ -595,7 +595,7 @@ class ImageEditor(QWidget):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = DitherDialog(self, original_image, self.set_canvas_pixmap, default_threshold=128)
-            result = dlg.exec_()
+            result = dlg.show()
             if result == QDialog.Accepted:
                 pixmap = dlg.get_pixmap()
                 self.push_undo(pixmap)
@@ -606,7 +606,7 @@ class ImageEditor(QWidget):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = SaturationDialog(self, original_image, self.set_canvas_pixmap, default_saturation=100)
-            result = dlg.exec_()
+            result = dlg.show()
             if result == QDialog.Accepted:
                 pixmap = dlg.get_pixmap()
                 self.push_undo(pixmap)
@@ -617,7 +617,7 @@ class ImageEditor(QWidget):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = PixelateDialog(self, original_image, self.set_canvas_pixmap, default_blocksize=8)
-            result = dlg.exec_()
+            result = dlg.show()
             if result == QDialog.Accepted:
                 pixmap = dlg.get_pixmap()
                 self.push_undo(pixmap)
@@ -628,7 +628,7 @@ class ImageEditor(QWidget):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = ScanlinesDialog(self, original_image, self.set_canvas_pixmap)
-            result = dlg.exec_()
+            result = dlg.show()
             if result == QDialog.Accepted:
                 pixmap = dlg.get_pixmap()
                 self.push_undo(pixmap)
@@ -639,7 +639,7 @@ class ImageEditor(QWidget):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = NoiseDialog(self, original_image, self.set_canvas_pixmap)
-            result = dlg.exec_()
+            result = dlg.show()
             if result == QDialog.Accepted:
                 pixmap = dlg.get_pixmap()
                 self.push_undo(pixmap)
@@ -650,7 +650,7 @@ class ImageEditor(QWidget):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = HalftoneDialog(self, original_image, self.set_canvas_pixmap)
-            result = dlg.exec_()
+            result = dlg.show()
             if result == QDialog.Accepted:
                 pixmap = dlg.get_pixmap()
                 self.push_undo(pixmap)
@@ -661,7 +661,7 @@ class ImageEditor(QWidget):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = PixelSortDialog(self, original_image, self.set_canvas_pixmap)
-            result = dlg.exec_()
+            result = dlg.show()
             if result == QDialog.Accepted:
                 pixmap = dlg.get_pixmap()
                 self.push_undo(pixmap)
