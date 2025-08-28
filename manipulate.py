@@ -105,17 +105,30 @@ class StartPage(QWidget):
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         # Title
+        title_layout = QHBoxLayout()
+        title_layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)  # vertically center the text with the logo
+
+        # Logo
+        filepath = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
+        logo = QLabel()
+        pixmap = QPixmap(filepath)
+        scaled_pixmap = pixmap.scaled(200, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        logo.setPixmap(scaled_pixmap)
+        title_layout.addWidget(logo)
+
+        # Title
         title = QLabel("manipulate")
-        title.setStyleSheet("font-family: 'LCDMono'; font-size: 64px; margin-bottom: 12px;")
-        layout.addWidget(title, alignment=Qt.AlignLeft)
+        title.setStyleSheet("font-family: 'Minecraft'; font-size: 64px; margin-left: 12px;")
+        title_layout.addWidget(title)
+
+        # Add horizontal layout to main layout
+        layout.addLayout(title_layout)
         # Import button
-        import_btn = QPushButton("import image")
-        import_btn.setStyleSheet("margin-bottom: 16px; min-width: 160px; padding: 8px;")
+        import_btn = QPushButton("> import image")
         import_btn.clicked.connect(import_callback)
         layout.addWidget(import_btn, alignment=Qt.AlignLeft)
         # Recent images list
         recent_label = QLabel("recent images >")
-        recent_label.setStyleSheet("margin-bottom: 8px;")
         layout.addWidget(recent_label, alignment=Qt.AlignLeft)
         self.recent_buttons = []
         for path in recent_images:
@@ -217,7 +230,7 @@ class ImageEditor(QWidget):
             if families:
                 self.setFont(QFont(families[0], 12))
         self.setStyleSheet(DARK_MODE)
-        
+
         self.set_titlebar_color(0x010101)
 
         # Recent images management
