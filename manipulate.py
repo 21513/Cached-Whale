@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QImage, QColor, QFontDatabase, QFont, QPainter, QIcon, QPen
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QRect
 
-from style import DARK_MODE
+from style import DARK_MODE, TITLE_BAR, WINDOW_BUTTON, CLOSE_BUTTON
 from effects import (
     CompressionDialog,
     DitherDialog,
@@ -21,7 +21,8 @@ from effects import (
     NoiseDialog,
     HalftoneDialog,
     PixelateDialog,
-    PixelSortDialog)
+    PixelSortDialog
+)
 
 # Constants for recent file management
 MAX_RECENT = 5
@@ -100,16 +101,16 @@ class StartPage(QWidget):
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         # Title
-        title = QLabel("Manipulate")
+        title = QLabel("manipulate")
         title.setStyleSheet("font-family: 'LCDMono'; font-size: 64px; margin-bottom: 12px;")
         layout.addWidget(title, alignment=Qt.AlignLeft)
         # Import button
-        import_btn = QPushButton("Import Image")
+        import_btn = QPushButton("import image")
         import_btn.setStyleSheet("margin-bottom: 16px; min-width: 160px; padding: 8px;")
         import_btn.clicked.connect(import_callback)
         layout.addWidget(import_btn, alignment=Qt.AlignLeft)
         # Recent images list
-        recent_label = QLabel("Recent Images:")
+        recent_label = QLabel("recent images >")
         recent_label.setStyleSheet("margin-bottom: 8px;")
         layout.addWidget(recent_label, alignment=Qt.AlignLeft)
         self.recent_buttons = []
@@ -138,18 +139,19 @@ class ResizeDialog(QDialog):
     resized = pyqtSignal(int, int)
     def __init__(self, orig_w, orig_h):
         super().__init__()
-        self.setWindowTitle("Resize Image")
+        self.setWindowTitle("resize image")
         self.setFixedSize(260, 120)
+        self.setStyleSheet(DARK_MODE)
         self.orig_w = orig_w
         self.orig_h = orig_h
         self.aspect = orig_w / orig_h if orig_h != 0 else 1
         layout = QFormLayout()
         self.width_edit = QLineEdit(str(orig_w))
         self.height_edit = QLineEdit(str(orig_h))
-        self.lock_aspect = QCheckBox("Lock Aspect Ratio")
+        self.lock_aspect = QCheckBox("lock aspect ratio")
         self.lock_aspect.setChecked(True)
-        layout.addRow("Width:", self.width_edit)
-        layout.addRow("Height:", self.height_edit)
+        layout.addRow("width >", self.width_edit)
+        layout.addRow("height >", self.height_edit)
         layout.addRow(self.lock_aspect)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         layout.addRow(buttons)
@@ -686,20 +688,26 @@ class ImageEditor(QWidget):
     
     def paintEvent(self, event):
         super().paintEvent(event)
+
+        # Draw 2px white border on top of everything
         painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
         pen = QPen(QColor("white"), 2)
         painter.setPen(pen)
-        painter.drawRect(self.rect().adjusted(1, 1, -1, -1))  # keep inside edges
+        painter.setBrush(Qt.NoBrush)
+
+        # Draw rectangle inside window edges
+        rect = self.rect().adjusted(1, 1, -1, -1)
+        painter.drawRect(rect)
 
 class CustomTitleBar(QWidget):
     def __init__(self, parent=None, title="Manipulate", icon_path=None):
         super().__init__(parent)
         self.parent = parent
-        self.setFixedHeight(32)
+        self.setFixedHeight(24)
+        self.setObjectName("CustomTitleBar")
 
-        # --- Ensure full background is painted ---
-        self.setAutoFillBackground(True)
-        self.setStyleSheet("background-color: #111; color: #fff;")
+        self.setStyleSheet(TITLE_BAR)
 
         layout = QHBoxLayout()
         layout.setContentsMargins(8, 0, 8, 0)
@@ -716,7 +724,7 @@ class CustomTitleBar(QWidget):
 
         # --- Title ---
         self.title = QLabel(title)
-        self.title.setStyleSheet("font-size: 13px;")
+        self.title.setStyleSheet("font-size: 16px;")
         layout.addWidget(self.title)
 
         # --- Spacer pushes buttons to the right ---
@@ -728,54 +736,25 @@ class CustomTitleBar(QWidget):
         btn_layout.setContentsMargins(0, 0, 0, 0)
         btn_layout.setSpacing(0)
 
-        # Shared style for buttons
-        button_style = """
-            QPushButton {
-                background-color: #111;
-                color: #fff;
-                border: none;
-                min-width: 32px;
-                min-height: 28px;
-            }
-            QPushButton:hover {
-                background-color: #333;
-            }
-            QPushButton:pressed {
-                background-color: #555;
-            }
-        """
-        close_style = """
-            QPushButton {
-                background-color: #111;
-                color: #fff;
-                border: none;
-                min-width: 32px;
-                min-height: 28px;
-            }
-            QPushButton:hover {
-                background-color: #c00;
-            }
-            QPushButton:pressed {
-                background-color: #a00;
-            }
-        """
-
         # Minimize
         self.min_btn = QPushButton("–")
-        self.min_btn.setStyleSheet(button_style)
+        self.min_btn.setStyleSheet(WINDOW_BUTTON)
         self.min_btn.clicked.connect(self.parent.showMinimized)
+        self.min_btn.setCursor(Qt.PointingHandCursor)
         btn_layout.addWidget(self.min_btn)
 
         # Max/Restore
         self.max_btn = QPushButton("□")
-        self.max_btn.setStyleSheet(button_style)
+        self.max_btn.setStyleSheet(WINDOW_BUTTON)
         self.max_btn.clicked.connect(self.toggle_max_restore)
+        self.max_btn.setCursor(Qt.PointingHandCursor)
         btn_layout.addWidget(self.max_btn)
 
         # Close
         self.close_btn = QPushButton("✕")
-        self.close_btn.setStyleSheet(close_style)
+        self.close_btn.setStyleSheet(CLOSE_BUTTON)
         self.close_btn.clicked.connect(self.parent.close)
+        self.close_btn.setCursor(Qt.PointingHandCursor)
         btn_layout.addWidget(self.close_btn)
 
         self.buttons.setLayout(btn_layout)
@@ -811,6 +790,21 @@ class CustomTitleBar(QWidget):
             event.accept()
         else:
             super().mouseDoubleClickEvent(event)
+    
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor("#101010"))  # full background
+        super().paintEvent(event)
+
+        # Draw 2px white border on top of everything
+        painter.setRenderHint(QPainter.Antialiasing)
+        pen = QPen(QColor("white"), 2)
+        painter.setPen(pen)
+        painter.setBrush(Qt.NoBrush)
+
+        # Draw rectangle inside window edges
+        rect = self.rect().adjusted(1, 1, -1, 1)
+        painter.drawRect(rect)
 
 # --- Application entry point ---
 if __name__ == "__main__":

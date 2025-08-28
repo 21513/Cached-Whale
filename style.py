@@ -4,6 +4,7 @@ QWidget {
     font-family: 'Minecraft';
     font-size: 16px;
     color: #ffffff;
+    margin: 2px;
 }
 
 QLabel {
@@ -11,18 +12,14 @@ QLabel {
 }
 
 QPushButton {
-    background-color: #010101;
-    border: 2px solid #888888;
-    padding: 8px;
     font-size: 16px;
     color: #ffffff;
-    margin-bottom: 8px;
-    min-width: 140px;
+    margin-bottom: 2px;
+    min-width: 160px;
 }
 
 QPushButton:hover {
-    background-color: #202020;
-    border: 2px solid #ffffff;
+    text-decoration: underline;
 }
 
 QMenuBar {
@@ -40,5 +37,34 @@ Qmenu::item:hover {
 
 QMenu:hover {
     background-color: #202020;
+}
+"""
+
+TITLE_BAR = """
+QWidget {
+    background-color: #101010;
+    margin: 2px;
+}
+"""
+
+WINDOW_BUTTON = """
+QPushButton {
+    min-width: 24px;
+    background-color: #101010;
+}
+
+QPushButton:hover {
+    text-decoration: none;
+}
+"""
+
+CLOSE_BUTTON = """
+QPushButton {
+    min-width: 24px;
+    background-color: #101010;
+}
+
+QPushButton:hover {
+    text-decoration: none;
 }
 """
