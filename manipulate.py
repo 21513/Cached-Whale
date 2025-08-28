@@ -2,12 +2,13 @@ import sys
 import os
 import json
 import numpy as np
+import ctypes
 
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QFileDialog, QVBoxLayout, QGraphicsView,
     QGraphicsScene, QGraphicsPixmapItem, QHBoxLayout, QLabel, QStackedLayout,
     QMenuBar, QMenu, QAction, QSplitter, QDialog, QFormLayout, QLineEdit,
-    QCheckBox, QDialogButtonBox, QSizePolicy
+    QCheckBox, QDialogButtonBox, QSizePolicy, QMainWindow
 )
 from PyQt5.QtGui import QPixmap, QImage, QColor, QFontDatabase, QFont, QPainter, QIcon, QPen
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QRect
@@ -27,7 +28,10 @@ from effects import (
 # Constants for recent file management
 MAX_RECENT = 5
 RECENT_FILE = os.path.join(os.getenv("APPDATA"), "ManipulateRecent.json")
-RESIZE_MARGIN = 6  # pixels from edge
+
+DWMWA_USE_IMMERSIVE_DARK_MODE = 20  # for dark mode, Windows 10+
+DWMWA_CAPTION_COLOR = 35  # custom title bar color
+DWMWA_TEXT_COLOR = 36  # custom text color
 
 # --- CanvasView: Custom QGraphicsView for displaying and interacting with images ---
 from PyQt5.QtCore import Qt, QRectF
@@ -213,6 +217,8 @@ class ImageEditor(QWidget):
             if families:
                 self.setFont(QFont(families[0], 12))
         self.setStyleSheet(DARK_MODE)
+        
+        self.set_titlebar_color(0x010101)
 
         # Recent images management
         self.recent_images = self.load_recent_images()
@@ -243,27 +249,27 @@ class ImageEditor(QWidget):
         sidebar_layout.setAlignment(Qt.AlignTop)
 
         # Add buttons for all effects and actions
-        self.invert_btn = QPushButton("Invert Colors")
+        self.invert_btn = QPushButton("invert colors")
         self.invert_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.invert_btn.clicked.connect(self.invert_image)
 
-        self.dither_btn = QPushButton("Dither Effect")
+        self.dither_btn = QPushButton("dither effect")
         self.dither_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.dither_btn.clicked.connect(self.dither_dialog)
 
-        self.compression_btn = QPushButton("JPEG Compression")
+        self.compression_btn = QPushButton("compression")
         self.compression_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.compression_btn.clicked.connect(self.compression_dialog)
 
-        self.grayscale_btn = QPushButton("Saturation")
+        self.grayscale_btn = QPushButton("saturation")
         self.grayscale_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.grayscale_btn.clicked.connect(self.saturation_dialog)
 
-        self.pixelate_btn = QPushButton("Pixelate")
+        self.pixelate_btn = QPushButton("pixelate")
         self.pixelate_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.pixelate_btn.clicked.connect(self.pixelate_dialog)
 
-        self.save_image_btn = QPushButton("Save Image As")
+        self.save_image_btn = QPushButton("save image as")
         self.save_image_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.save_image_btn.clicked.connect(self.save_image_as)
         self.save_image_btn.setEnabled(False)
@@ -278,22 +284,22 @@ class ImageEditor(QWidget):
         self.sidebar.setStyleSheet("background-color: #222; border-left: 2px solid #444;")
 
         # --- Add these lines for new effects ---
-        self.scanlines_btn = QPushButton("Scanlines")
+        self.scanlines_btn = QPushButton("scanlines")
         self.scanlines_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.scanlines_btn.clicked.connect(self.scanlines_dialog)
         sidebar_layout.addWidget(self.scanlines_btn)
 
-        self.filmgrain_btn = QPushButton("Noise")
+        self.filmgrain_btn = QPushButton("noise")
         self.filmgrain_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.filmgrain_btn.clicked.connect(self.noise_dialog)
         sidebar_layout.addWidget(self.filmgrain_btn)
 
-        self.halftone_btn = QPushButton("Halftone")
+        self.halftone_btn = QPushButton("halftone")
         self.halftone_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.halftone_btn.clicked.connect(self.halftone_dialog)
         sidebar_layout.addWidget(self.halftone_btn)
 
-        self.pixelsort_btn = QPushButton("Pixel Sort")
+        self.pixelsort_btn = QPushButton("pixel sort")
         self.pixelsort_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
         self.pixelsort_btn.clicked.connect(self.pixelsort_dialog)
         sidebar_layout.addWidget(self.pixelsort_btn)
@@ -674,20 +680,16 @@ class ImageEditor(QWidget):
                 json.dump(self.recent_images, f)
         except Exception:
             pass
-    
-    def paintEvent(self, event):
-        super().paintEvent(event)
 
-        # Draw 2px white border on top of everything
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        pen = QPen(QColor("white"), 2)
-        painter.setPen(pen)
-        painter.setBrush(Qt.NoBrush)
-
-        # Draw rectangle inside window edges
-        rect = self.rect().adjusted(1, 1, -1, -1)
-        painter.drawRect(rect)
+    def set_titlebar_color(self, color):
+        hwnd = int(self.winId())
+        color_ref = ctypes.c_uint(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_ref),
+            ctypes.sizeof(color_ref)
+        )
 
 # --- Application entry point ---
 if __name__ == "__main__":
