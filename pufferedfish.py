@@ -26,7 +26,7 @@ from effects import (
 )
 
 MAX_RECENT = 5
-RECENT_FILE = os.path.join(os.getenv("APPDATA"), "ManipulateRecent.json")
+RECENT_FILE = os.path.join(os.getenv("APPDATA"), "PufferedFish_Recents.json")
 
 DWMWA_USE_IMMERSIVE_DARK_MODE = 20
 DWMWA_CAPTION_COLOR = 35
@@ -109,7 +109,7 @@ class StartPage(QWidget):
         logo.setPixmap(scaled_pixmap)
         title_layout.addWidget(logo)
 
-        title = QLabel("manipulate")
+        title = QLabel("puffered fish")
         title.setStyleSheet("font-family: 'Minecraft'; font-size: 64px; margin-left: 12px;")
         title_layout.addWidget(title)
 
@@ -206,7 +206,7 @@ class ResizeDialog(QDialog):
 class ImageEditor(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Manipulate")
+        self.setWindowTitle("Puffered Fish")
         self.resize(900, 600)
         font_path = os.path.join(os.path.dirname(__file__), "fonts", "lcd.TTF")
         if os.path.exists(font_path):
