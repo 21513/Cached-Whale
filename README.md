@@ -1,4 +1,4 @@
-# Crowkey
+# Bullet Whale
 
 Image manipulater with basic functionality. A lot of effects will be added.
 
