@@ -49,6 +49,12 @@ QMenuBar::item:selected {{
     background-color: {dhover_color};
 }}
 
+QMenu::separator {{
+    height: 2px;
+    background-color: {dtext_color};
+    margin: 4px 8px;
+}}
+
 QMenu {{
     padding: 2px;
     border: {dborder};
@@ -99,6 +105,12 @@ QMenuBar::item {{
 
 QMenuBar::item:selected {{
     background-color: {hhover_color};
+}}
+
+QMenu::separator {{
+    height: 2px;
+    background-color: {htext_color};
+    margin: 4px 8px;
 }}
 
 QMenu {{

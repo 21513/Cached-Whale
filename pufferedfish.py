@@ -357,6 +357,8 @@ class ImageEditor(QWidget):
         edit_menu.addAction(resize_action)
         self.menu_bar.addMenu(edit_menu)
 
+        edit_menu.addSeparator()
+
         preferences_menu = QAction("&Preferences", self)
         preferences_menu.setShortcut("Ctrl+,")
         preferences_menu.triggered.connect(self.open_preferences_menu)
