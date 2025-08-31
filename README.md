@@ -1,6 +1,4 @@
-# Puffered Fish
-
-<img width="128" height="128" alt="logo" src="https://github.com/user-attachments/assets/454808f3-e671-43d3-98f5-1660c1216103" />
+# Crowkey
 
 Image manipulater with basic functionality. A lot of effects will be added.
 

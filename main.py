@@ -33,7 +33,7 @@ MAX_RECENT = 5
 
 APPDATA_DIR = os.path.join(
     QStandardPaths.writableLocation(QStandardPaths.AppDataLocation),
-    "PufferedFish"
+    "Crowkey"
 )
 os.makedirs(APPDATA_DIR, exist_ok=True)
 
@@ -117,7 +117,7 @@ class StartPage(QWidget):
         logo.setPixmap(scaled_pixmap)
         title_layout.addWidget(logo)
 
-        title = QLabel("puffered fish")
+        title = QLabel("crowkey")
         title.setStyleSheet("font-family: 'Minecraft'; font-size: 64px; margin-left: 12px;")
         title_layout.addWidget(title)
 
@@ -214,7 +214,7 @@ class ResizeDialog(QDialog):
 class ImageEditor(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Puffered Fish")
+        self.setWindowTitle("Crowkey")
         self.resize(900, 600)
         font_path = os.path.join(os.path.dirname(__file__), "fonts", "lcd.TTF")
         if os.path.exists(font_path):
