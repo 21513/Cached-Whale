@@ -24,24 +24,35 @@ DWMWA_TEXT_COLOR = 36
 class CompressionDialog(QDialog):
     def __init__(self, parent, original_image, apply_callback, default_quality=10):
         super().__init__(parent)
+
         self.setWindowTitle("JPEG Compression")
-        self.setFixedSize(320, 180)  # Increased size
+        self.setFixedSize(320, 180)
         self.set_titlebar_color(0x010101)
+
         self.original_image = original_image
         self.apply_callback = apply_callback
+
         layout = QVBoxLayout()
+
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setMinimum(1)
         self.slider.setMaximum(100)
         self.slider.setValue(default_quality)
+
         layout.addWidget(QLabel("JPEG Quality (1-100):"))
         layout.addWidget(self.slider)
+
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+
         layout.addWidget(buttons)
+
         self.setLayout(layout)
+
         self.slider.valueChanged.connect(self.on_slider_changed)
+
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
+        
         self._last_pixmap = original_image
 
         # Debounce timer
@@ -50,7 +61,7 @@ class CompressionDialog(QDialog):
         self.timer.timeout.connect(self.apply_current)
 
     def on_slider_changed(self, value):
-        self.timer.start(500)
+        self.timer.start(20)
 
     def apply_current(self):
         value = self.slider.value()
