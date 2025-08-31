@@ -38,33 +38,73 @@ Qmenu::item:hover {
 QMenu:hover {
     background-color: #202020;
 }
+
+QComboBox {
+    background-color: #101010;
+    color: #ffffff;
+    border: 1px solid #ffffff;
+    padding: 4px;
+    margin: 4px;
+}
+
+QComboBox:focus {
+    background-color: #101010;
+    color: #ffffff;
+    border: 1px solid #ffffff;
+}
+
+QComboBox:on {
+    background-color: #101010;
+    border: 1px solid #ffffff;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #101010;
+    color: #ffffff;
+    selection-background-color: #202020;
+    selection-color: #ffffff;
+    border: 1px solid #ffffff;
+}
 """
 
-TITLE_BAR = """
+HACKER_MODE = """
 QWidget {
-    background-color: #101010;
+    background-color: #010101;
+    font-family: 'Minecraft';
+    font-size: 16px;
+    color: #00ff00;
     margin: 2px;
 }
-"""
 
-WINDOW_BUTTON = """
+QLabel {
+    color: #00ff00;
+}
+
 QPushButton {
-    min-width: 24px;
-    background-color: #101010;
+    font-size: 16px;
+    color: #00ff00;
+    margin-bottom: 2px;
+    min-width: 160px;
 }
 
 QPushButton:hover {
-    text-decoration: none;
-}
-"""
-
-CLOSE_BUTTON = """
-QPushButton {
-    min-width: 24px;
-    background-color: #101010;
+    text-decoration: underline;
 }
 
-QPushButton:hover {
-    text-decoration: none;
+QMenuBar {
+    background-color: #010101;
+}
+
+QMenu {
+    background-color: #010101;
+    color: #00ff00;
+}
+
+Qmenu::item:hover {
+    background-color: #202020;
+}
+
+QMenu:hover {
+    background-color: #202020;
 }
 """

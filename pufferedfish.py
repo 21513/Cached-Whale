@@ -10,10 +10,13 @@ from PyQt5.QtWidgets import (
     QMenuBar, QMenu, QAction, QSplitter, QDialog, QFormLayout, QLineEdit,
     QCheckBox, QDialogButtonBox
 )
-from PyQt5.QtGui import QPixmap, QImage, QColor, QFontDatabase, QFont, QPainter, QIcon, QPen
-from PyQt5.QtCore import Qt, pyqtSignal
-
-from style import DARK_MODE
+from PyQt5.QtGui import (
+    QPixmap, QImage, QColor, QFontDatabase, QFont, QPainter, QIcon, QBrush
+)
+from PyQt5.QtCore import (
+    Qt, QRectF, pyqtSignal
+)
+from style import DARK_MODE, HACKER_MODE
 from effects import (
     CompressionDialog,
     DitherDialog,
@@ -22,7 +25,8 @@ from effects import (
     NoiseDialog,
     HalftoneDialog,
     PixelateDialog,
-    PixelSortDialog
+    PixelSortDialog,
+    PreferencesDialog
 )
 
 MAX_RECENT = 5
@@ -31,10 +35,6 @@ RECENT_FILE = os.path.join(os.getenv("APPDATA"), "PufferedFish_Recents.json")
 DWMWA_USE_IMMERSIVE_DARK_MODE = 20
 DWMWA_CAPTION_COLOR = 35
 DWMWA_TEXT_COLOR = 36
-
-from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QPainter, QPixmap, QBrush, QColor
-from PyQt5.QtWidgets import QGraphicsView
 
 class CanvasView(QGraphicsView):
     def __init__(self):
@@ -359,6 +359,12 @@ class ImageEditor(QWidget):
         edit_menu.addAction(resize_action)
         self.menu_bar.addMenu(edit_menu)
 
+        preferences_menu = QAction("&Preferences", self)
+        preferences_menu.setShortcut("Ctrl+,")
+        preferences_menu.triggered.connect(self.open_preferences_menu)
+        edit_menu.addAction(preferences_menu)
+        self.menu_bar.addMenu(edit_menu)
+
         self.shortcut_zoom = QAction(self)
         self.shortcut_zoom.setShortcut("Z")
         self.shortcut_zoom.triggered.connect(self.zoom_100)
@@ -481,7 +487,7 @@ class ImageEditor(QWidget):
             ptr = image.bits()
             ptr.setsize(image.byteCount())
             arr = np.frombuffer(ptr, np.uint8).reshape((image.height(), image.width(), 4))
-            arr[..., 0:3] = 255 - arr[..., 0:3]  # Invert RGB
+            arr[..., 0:3] = 255 - arr[..., 0:3]
             new_pixmap = QPixmap.fromImage(image)
             self.scene.clear()
             self.image_item = QGraphicsPixmapItem(new_pixmap)
@@ -509,6 +515,24 @@ class ImageEditor(QWidget):
                 w, h = dlg.get_size()
                 self.resize_image(w, h)
 
+    def open_preferences_menu(self):
+        # pass current stylesheet info (track current theme in a variable)
+        dlg = PreferencesDialog(current_theme=getattr(self, "current_theme", "cmd"), parent=self)
+        if dlg.exec_() == QDialog.Accepted:
+            new_theme = dlg.select_theme()
+            self.apply_theme(new_theme)
+
+    def apply_theme(self, theme_name):
+        if theme_name == "cmd":
+            self.setStyleSheet(DARK_MODE)
+        elif theme_name == "hacker":
+            self.setStyleSheet(HACKER_MODE)
+        else:
+            self.setStyleSheet(DARK_MODE)
+
+        self.current_theme = theme_name
+
+
     def resize_image(self, w, h):
         if self.image_item:
             original_image = self.image_item.pixmap()
@@ -520,7 +544,7 @@ class ImageEditor(QWidget):
             self.canvas.fitInView(self.image_item, Qt.KeepAspectRatio)
             self.canvas.centerOn(self.image_item)
             self.save_image_btn.setEnabled(True)
-            self.push_undo(scaled)
+            # self.push_undo(scaled)
 
     def zoom_100(self):
         if self.image_item:
@@ -532,91 +556,75 @@ class ImageEditor(QWidget):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = CompressionDialog(self, original_image, self.set_canvas_pixmap, default_quality=10)
-            result = dlg.show()
-            if result == QDialog.Accepted:
-                pixmap = dlg.get_pixmap()
-                self.push_undo(pixmap)
-            else:
-                self.set_canvas_pixmap(original_image)
+
+            dlg.accepted.connect(lambda: self.push_undo(dlg.get_pixmap()))
+            dlg.rejected.connect(lambda: self.set_canvas_pixmap(original_image, push=False))
+            dlg.show()
 
     def dither_dialog(self):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = DitherDialog(self, original_image, self.set_canvas_pixmap, default_threshold=128)
-            result = dlg.show()
-            if result == QDialog.Accepted:
-                pixmap = dlg.get_pixmap()
-                self.push_undo(pixmap)
-            else:
-                self.set_canvas_pixmap(original_image)
+
+            dlg.accepted.connect(lambda: self.push_undo(dlg.get_pixmap()))
+            dlg.rejected.connect(lambda: self.set_canvas_pixmap(original_image, push=False))
+            dlg.show()
 
     def saturation_dialog(self):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = SaturationDialog(self, original_image, self.set_canvas_pixmap, default_saturation=100)
-            result = dlg.show()
-            if result == QDialog.Accepted:
-                pixmap = dlg.get_pixmap()
-                self.push_undo(pixmap)
-            else:
-                self.set_canvas_pixmap(original_image)
+
+            dlg.accepted.connect(lambda: self.push_undo(dlg.get_pixmap()))
+            dlg.rejected.connect(lambda: self.set_canvas_pixmap(original_image, push=False))
+            dlg.show()
 
     def pixelate_dialog(self):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = PixelateDialog(self, original_image, self.set_canvas_pixmap, default_blocksize=8)
-            result = dlg.show()
-            if result == QDialog.Accepted:
-                pixmap = dlg.get_pixmap()
-                self.push_undo(pixmap)
-            else:
-                self.set_canvas_pixmap(original_image)
+
+            dlg.accepted.connect(lambda: self.push_undo(dlg.get_pixmap()))
+            dlg.rejected.connect(lambda: self.set_canvas_pixmap(original_image, push=False))
+            dlg.show()
 
     def scanlines_dialog(self):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = ScanlinesDialog(self, original_image, self.set_canvas_pixmap)
-            result = dlg.show()
-            if result == QDialog.Accepted:
-                pixmap = dlg.get_pixmap()
-                self.push_undo(pixmap)
-            else:
-                self.set_canvas_pixmap(original_image)
+
+            dlg.accepted.connect(lambda: self.push_undo(dlg.get_pixmap()))
+            dlg.rejected.connect(lambda: self.set_canvas_pixmap(original_image, push=False))
+            dlg.show()
 
     def noise_dialog(self):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = NoiseDialog(self, original_image, self.set_canvas_pixmap)
-            result = dlg.show()
-            if result == QDialog.Accepted:
-                pixmap = dlg.get_pixmap()
-                self.push_undo(pixmap)
-            else:
-                self.set_canvas_pixmap(original_image)
+
+            dlg.accepted.connect(lambda: self.push_undo(dlg.get_pixmap()))
+            dlg.rejected.connect(lambda: self.set_canvas_pixmap(original_image, push=False))
+            dlg.show()
 
     def halftone_dialog(self):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = HalftoneDialog(self, original_image, self.set_canvas_pixmap)
-            result = dlg.show()
-            if result == QDialog.Accepted:
-                pixmap = dlg.get_pixmap()
-                self.push_undo(pixmap)
-            else:
-                self.set_canvas_pixmap(original_image)
+            
+            dlg.accepted.connect(lambda: self.push_undo(dlg.get_pixmap()))
+            dlg.rejected.connect(lambda: self.set_canvas_pixmap(original_image, push=False))
+            dlg.show()
 
     def pixelsort_dialog(self):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = PixelSortDialog(self, original_image, self.set_canvas_pixmap)
-            result = dlg.show()
-            if result == QDialog.Accepted:
-                pixmap = dlg.get_pixmap()
-                self.push_undo(pixmap)
-            else:
-                self.set_canvas_pixmap(original_image)
+            
+            dlg.accepted.connect(lambda: self.push_undo(dlg.get_pixmap()))
+            dlg.rejected.connect(lambda: self.set_canvas_pixmap(original_image, push=False))
+            dlg.show()
 
-    def set_canvas_pixmap(self, pixmap):
+    def set_canvas_pixmap(self, pixmap, push=True):
         self.scene.clear()
         self.image_item = QGraphicsPixmapItem(pixmap)
         self.scene.addItem(self.image_item)
@@ -624,6 +632,8 @@ class ImageEditor(QWidget):
         self.canvas.fitInView(self.image_item, Qt.KeepAspectRatio)
         self.canvas.centerOn(self.image_item)
         self.save_image_btn.setEnabled(True)
+        if push:
+            self.push_undo(pixmap)
 
     def load_recent_images(self):
         if os.path.exists(RECENT_FILE):

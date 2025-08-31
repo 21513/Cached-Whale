@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QPixmap, QImage, QColor, QPainter, QTransform
 from PyQt5 import QtGui
-from PyQt5.QtCore import Qt, QBuffer, QIODevice, QTimer
+from PyQt5.QtCore import Qt, QBuffer, QIODevice, QTimer, pyqtSignal
 
 DWMWA_USE_IMMERSIVE_DARK_MODE = 20
 DWMWA_CAPTION_COLOR = 35
@@ -61,7 +61,7 @@ class CompressionDialog(QDialog):
         self.timer.timeout.connect(self.apply_current)
 
     def on_slider_changed(self, value):
-        self.timer.start(20)
+        self.timer.start(100)
 
     def apply_current(self):
         value = self.slider.value()
@@ -703,6 +703,48 @@ class PixelSortDialog(QDialog):
 
     def get_pixmap(self):
         return self._last_pixmap
+
+    def set_titlebar_color(self, color):
+        hwnd = int(self.winId())
+        color_ref = ctypes.c_uint(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            35,
+            ctypes.byref(color_ref),
+            ctypes.sizeof(color_ref)
+        )
+
+class PreferencesDialog(QDialog):
+    theme_changed = pyqtSignal(str)  # emit theme name when changed
+
+    def __init__(self, current_theme="cmd", parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Preferences")
+        self.setFixedSize(300, 150)
+        self.set_titlebar_color(0x010101)
+
+        layout = QVBoxLayout()
+
+        # Dropdown for theme selection
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(["cmd", "hacker"])
+        if current_theme in ["cmd", "hacker"]:
+            self.theme_combo.setCurrentText(current_theme)
+
+        layout.addWidget(QLabel("Theme:"))
+        layout.addWidget(self.theme_combo)
+
+        # Buttons
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        layout.addWidget(buttons)
+        self.setLayout(layout)
+
+    def select_theme(self):
+        return self.theme_combo.currentText()
 
     def set_titlebar_color(self, color):
         hwnd = int(self.winId())
