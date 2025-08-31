@@ -109,10 +109,11 @@ class StartPage(QWidget):
         title_layout = QHBoxLayout()
         title_layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
-        filepath = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
+        filepath = os.path.join(os.path.dirname(__file__), "assets", "logo.svg")
         logo = QLabel()
+        logo.setProperty("class", "logo")
         pixmap = QPixmap(filepath)
-        scaled_pixmap = pixmap.scaled(200, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        scaled_pixmap = pixmap.scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         logo.setPixmap(scaled_pixmap)
         title_layout.addWidget(logo)
 

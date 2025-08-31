@@ -11,6 +11,11 @@ QLabel {
     color: #ffffff;
 }
 
+QLabel[class="logo] {
+    margin: 64px;
+    background-color: #ff0000;
+}
+
 QPushButton {
     font-size: 16px;
     color: #ffffff;
