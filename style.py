@@ -1,115 +1,117 @@
-DARK_MODE = """
-QWidget {
-    background-color: #010101;
+# Dark mode variables
+dbackground_color = "#010101"
+dtext_color = "#ffffff"
+dhover_color = "#202020"
+
+dborder = "1px solid #ffffff"
+
+# Hacker mode variables
+hbackground_color = "#010101"
+htext_color = "#00ff00"
+hhover_color = "#202020"
+
+hborder = "1px solid #00ff00"
+
+DARK_MODE = f"""
+QWidget {{
+    background-color: {dbackground_color};
+    color: {dtext_color};
     font-family: 'Minecraft';
     font-size: 16px;
-    color: #ffffff;
-    margin: 2px;
-}
-
-QLabel {
-    color: #ffffff;
-}
-
-QLabel[class="logo] {
-    margin: 64px;
-    background-color: #ff0000;
-}
-
-QPushButton {
-    font-size: 16px;
-    color: #ffffff;
-    margin-bottom: 2px;
-    min-width: 160px;
-}
-
-QPushButton:hover {
-    text-decoration: underline;
-}
-
-QMenuBar {
-    background-color: #010101;
-}
-
-QMenu {
-    background-color: #010101;
-    color: #ffffff;
-}
-
-Qmenu::item:hover {
-    background-color: #202020;
-}
-
-QMenu:hover {
-    background-color: #202020;
-}
-
-QComboBox {
-    background-color: #101010;
-    color: #ffffff;
-    border: 1px solid #ffffff;
     padding: 4px;
-    margin: 4px;
-}
+}}
 
-QComboBox:focus {
-    background-color: #101010;
-    color: #ffffff;
-    border: 1px solid #ffffff;
-}
+QPushButton {{
+    padding: 4px;
+    text-align: left;
+}}
 
-QComboBox:on {
-    background-color: #101010;
-    border: 1px solid #ffffff;
-}
+QPushButton:hover {{
+    border: 1px solid {dtext_color};
+}}
 
-QComboBox QAbstractItemView {
-    background-color: #101010;
-    color: #ffffff;
-    selection-background-color: #202020;
-    selection-color: #ffffff;
-    border: 1px solid #ffffff;
-}
+QLabel {{
+    padding: 4px;
+}}
+
+QMenuBar {{
+    background-color: {dbackground_color};
+    color: {dtext_color};
+}}
+
+QMenuBar::item {{
+    spacing: 4px;
+    padding: 4px 8px;
+    background: transparent;
+}}
+
+QMenuBar::item:selected {{
+    background-color: {dhover_color};
+}}
+
+QMenu {{
+    padding: 2px;
+    border: {dborder};
+}}
+
+QMenu::item:selected {{
+    background-color: {dhover_color};
+}}
+
+CanvasView {{
+    border: {dborder};
+    border-radius: 4px;
+}}
 """
 
-HACKER_MODE = """
-QWidget {
-    background-color: #010101;
+HACKER_MODE = f"""
+QWidget {{
+    background-color: {hbackground_color};
+    color: {htext_color};
     font-family: 'Minecraft';
     font-size: 16px;
-    color: #00ff00;
-    margin: 2px;
-}
+    padding: 4px;
+}}
 
-QLabel {
-    color: #00ff00;
-}
+QPushButton {{
+    padding: 4px;
+    text-align: left;
+}}
 
-QPushButton {
-    font-size: 16px;
-    color: #00ff00;
-    margin-bottom: 2px;
-    min-width: 160px;
-}
+QPushButton:hover {{
+    border: 1px solid {htext_color};
+}}
 
-QPushButton:hover {
-    text-decoration: underline;
-}
+QLabel {{
+    padding: 4px;
+}}
 
-QMenuBar {
-    background-color: #010101;
-}
+QMenuBar {{
+    background-color: {hbackground_color};
+    color: {htext_color};
+}}
 
-QMenu {
-    background-color: #010101;
-    color: #00ff00;
-}
+QMenuBar::item {{
+    spacing: 4px;
+    padding: 4px 8px;
+    background: transparent;
+}}
 
-Qmenu::item:hover {
-    background-color: #202020;
-}
+QMenuBar::item:selected {{
+    background-color: {hhover_color};
+}}
 
-QMenu:hover {
-    background-color: #202020;
-}
+QMenu {{
+    padding: 2px;
+    border: {hborder};
+}}
+
+QMenu::item:selected {{
+    background-color: {hhover_color};
+}}
+
+CanvasView {{
+    border: {hborder};
+    border-radius: 4px;
+}}
 """

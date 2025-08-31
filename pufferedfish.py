@@ -255,28 +255,22 @@ class ImageEditor(QWidget):
         sidebar_layout = QVBoxLayout()
         sidebar_layout.setAlignment(Qt.AlignTop)
 
-        self.invert_btn = QPushButton("invert")
-        self.invert_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
+        self.invert_btn = QPushButton("> invert")
         self.invert_btn.clicked.connect(self.invert_image)
 
-        self.dither_btn = QPushButton("dither")
-        self.dither_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
+        self.dither_btn = QPushButton("> dither")
         self.dither_btn.clicked.connect(self.dither_dialog)
 
-        self.compression_btn = QPushButton("compression")
-        self.compression_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
+        self.compression_btn = QPushButton("> compression")
         self.compression_btn.clicked.connect(self.compression_dialog)
 
-        self.grayscale_btn = QPushButton("saturation")
-        self.grayscale_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
+        self.grayscale_btn = QPushButton("> saturation")
         self.grayscale_btn.clicked.connect(self.saturation_dialog)
 
-        self.pixelate_btn = QPushButton("pixelate")
-        self.pixelate_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
+        self.pixelate_btn = QPushButton("> pixelate")
         self.pixelate_btn.clicked.connect(self.pixelate_dialog)
 
-        self.save_image_btn = QPushButton("save as")
-        self.save_image_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
+        self.save_image_btn = QPushButton("> save as")
         self.save_image_btn.clicked.connect(self.save_image_as)
         self.save_image_btn.setEnabled(False)
 
@@ -287,32 +281,27 @@ class ImageEditor(QWidget):
         sidebar_layout.addWidget(self.pixelate_btn)
         sidebar_layout.addWidget(self.save_image_btn)
         self.sidebar.setLayout(sidebar_layout)
-        self.sidebar.setStyleSheet("background-color: #222; border-left: 2px solid #444;")
 
-        self.scanlines_btn = QPushButton("scanlines")
-        self.scanlines_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
+        self.scanlines_btn = QPushButton("> scanlines")
         self.scanlines_btn.clicked.connect(self.scanlines_dialog)
         sidebar_layout.addWidget(self.scanlines_btn)
 
-        self.filmgrain_btn = QPushButton("noise")
-        self.filmgrain_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
+        self.filmgrain_btn = QPushButton("> noise")
         self.filmgrain_btn.clicked.connect(self.noise_dialog)
         sidebar_layout.addWidget(self.filmgrain_btn)
 
-        self.halftone_btn = QPushButton("halftone")
-        self.halftone_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
+        self.halftone_btn = QPushButton("> halftone")
         self.halftone_btn.clicked.connect(self.halftone_dialog)
         sidebar_layout.addWidget(self.halftone_btn)
 
-        self.pixelsort_btn = QPushButton("pixel sort")
-        self.pixelsort_btn.setStyleSheet("padding: 8px; margin-bottom: 8px;")
+        self.pixelsort_btn = QPushButton("> pixel sort")
         self.pixelsort_btn.clicked.connect(self.pixelsort_dialog)
         sidebar_layout.addWidget(self.pixelsort_btn)
 
         self.splitter = QSplitter(Qt.Horizontal)
         self.splitter.addWidget(self.canvas)
         self.splitter.addWidget(self.sidebar)
-        self.splitter.setSizes([600, 200])
+        self.splitter.setSizes([700, 100])
         canvas_page = QWidget()
         canvas_layout = QHBoxLayout()
         canvas_layout.setContentsMargins(0, 0, 0, 0)
@@ -323,6 +312,7 @@ class ImageEditor(QWidget):
         self.stacked_layout.addWidget(canvas_page)
 
         self.menu_bar = QMenuBar(self)
+        self.menu_bar.setNativeMenuBar(False) # important for linux and macos apparently
         file_menu = QMenu("&File", self)
 
         open_action = QAction("&Open Image...", self)
