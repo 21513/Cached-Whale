@@ -14,7 +14,7 @@ from PyQt5.QtGui import (
     QPixmap, QImage, QColor, QFontDatabase, QFont, QPainter, QIcon, QBrush
 )
 from PyQt5.QtCore import (
-    Qt, QRectF, pyqtSignal
+    Qt, QRectF, pyqtSignal, QStandardPaths
 )
 from style import DARK_MODE, HACKER_MODE
 from effects import (
@@ -30,7 +30,14 @@ from effects import (
 )
 
 MAX_RECENT = 5
-RECENT_FILE = os.path.join(os.getenv("APPDATA"), "PufferedFish_Recents.json")
+
+APPDATA_DIR = os.path.join(
+    QStandardPaths.writableLocation(QStandardPaths.AppDataLocation),
+    "PufferedFish"
+)
+os.makedirs(APPDATA_DIR, exist_ok=True)
+
+RECENT_FILE = os.path.join(APPDATA_DIR, "recents.json")
 
 DWMWA_USE_IMMERSIVE_DARK_MODE = 20
 DWMWA_CAPTION_COLOR = 35
