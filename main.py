@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QFileDialog, QVBoxLayout, QGraphicsView,
     QGraphicsScene, QGraphicsPixmapItem, QHBoxLayout, QLabel, QStackedLayout,
     QMenuBar, QMenu, QAction, QSplitter, QDialog, QFormLayout, QLineEdit,
-    QCheckBox, QDialogButtonBox
+    QCheckBox, QDialogButtonBox, QFrame
 )
 from PyQt5.QtGui import (
     QPixmap, QImage, QColor, QFontDatabase, QFont, QPainter, QIcon, QBrush
@@ -257,29 +257,25 @@ class ImageEditor(QWidget):
 
         self.invert_btn = QPushButton("> invert")
         self.invert_btn.clicked.connect(self.invert_image)
+        sidebar_layout.addWidget(self.invert_btn)
 
         self.dither_btn = QPushButton("> dither")
         self.dither_btn.clicked.connect(self.dither_dialog)
+        sidebar_layout.addWidget(self.dither_btn)
 
         self.compression_btn = QPushButton("> compression")
         self.compression_btn.clicked.connect(self.compression_dialog)
+        sidebar_layout.addWidget(self.compression_btn)
 
-        self.grayscale_btn = QPushButton("> saturation")
-        self.grayscale_btn.clicked.connect(self.saturation_dialog)
+        self.saturation_btn = QPushButton("> saturation")
+        self.saturation_btn.clicked.connect(self.saturation_dialog)
+        sidebar_layout.addWidget(self.saturation_btn)
 
         self.pixelate_btn = QPushButton("> pixelate")
         self.pixelate_btn.clicked.connect(self.pixelate_dialog)
-
-        self.save_image_btn = QPushButton("> save as")
-        self.save_image_btn.clicked.connect(self.save_image_as)
-        self.save_image_btn.setEnabled(False)
-
-        sidebar_layout.addWidget(self.invert_btn)
-        sidebar_layout.addWidget(self.dither_btn)
-        sidebar_layout.addWidget(self.compression_btn)
-        sidebar_layout.addWidget(self.grayscale_btn)
         sidebar_layout.addWidget(self.pixelate_btn)
-        sidebar_layout.addWidget(self.save_image_btn)
+
+
         self.sidebar.setLayout(sidebar_layout)
 
         self.scanlines_btn = QPushButton("> scanlines")
@@ -297,6 +293,18 @@ class ImageEditor(QWidget):
         self.pixelsort_btn = QPushButton("> pixel sort")
         self.pixelsort_btn.clicked.connect(self.pixelsort_dialog)
         sidebar_layout.addWidget(self.pixelsort_btn)
+
+        sidebar_layout.addStretch()
+
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setProperty("class", "divider")
+        sidebar_layout.addWidget(separator)
+
+        self.save_image_btn = QPushButton("> save as")
+        self.save_image_btn.clicked.connect(self.save_image_as)
+        self.save_image_btn.setEnabled(False)
+        sidebar_layout.addWidget(self.save_image_btn)
 
         self.splitter = QSplitter(Qt.Horizontal)
         self.splitter.addWidget(self.canvas)
@@ -671,4 +679,5 @@ if __name__ == "__main__":
 
     editor = ImageEditor()
     editor.show()
+    editor.setFocus(Qt.NoFocusReason)
     sys.exit(app.exec_())
