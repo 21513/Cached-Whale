@@ -33,7 +33,7 @@ MAX_RECENT = 5
 
 APPDATA_DIR = os.path.join(
     QStandardPaths.writableLocation(QStandardPaths.AppDataLocation),
-    "BulletWhale"
+    "CachedWhale"
 )
 os.makedirs(APPDATA_DIR, exist_ok=True)
 
