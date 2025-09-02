@@ -731,12 +731,9 @@ class VectorDisplaceDialog(QDialog):
         self.scale_slider.setMinimum(0)
         self.scale_slider.setMaximum(100)
         self.scale_slider.setValue(50)
-        self.scale_label = QLabel("displacement strength: 50")
+        self.scale_label = QLabel("strength: 50")
         layout.addWidget(self.scale_label)
         layout.addWidget(self.scale_slider)
-
-        # Mode selection
-        layout.addWidget(QLabel("<vector mode>"))
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         layout.addWidget(buttons)
@@ -754,12 +751,12 @@ class VectorDisplaceDialog(QDialog):
         self.apply_current()
 
     def on_slider_changed(self, value):
-        self.scale_label.setText(f"displacement strength: {self.scale_slider.value()}")
+        self.scale_label.setText(f"strength: {self.scale_slider.value()}")
         self.timer.start(300)
 
     def apply_current(self):
         scale = self.scale_slider.value()
-        scale = scale ** 2
+        scale = scale ** 1.5
 
         image = self.original_image.toImage().convertToFormat(QImage.Format_ARGB32)
         ptr = image.bits()

@@ -44,8 +44,17 @@ DWMWA_USE_IMMERSIVE_CMD_THEME = 20
 DWMWA_CAPTION_COLOR = 35
 DWMWA_TEXT_COLOR = 36
 
-CMD_THEME = cmd_theme("#010101", "#ffffff", "1px solid #ffffff")
-HACKER_THEME = hacker_theme("#010101", "#00ff00", "1px solid #00ff00")
+CMD_THEME = cmd_theme(
+    background_color="#010101",
+    text_color="#ffffff",
+    border="1px solid #ffffff"
+)
+
+HACKER_THEME = hacker_theme(
+    background_color="#010101",
+    text_color="#00ff00",
+    border="1px solid #00ff00"
+)
 
 theme_name = ""
 
