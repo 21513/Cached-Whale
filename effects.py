@@ -355,7 +355,7 @@ class ScanlinesDialog(QDialog):
     def on_slider_changed(self, value):
         self.intensity_label.setText(f"Intensity: {self.intensity_slider.value()}%")
         self.thickness_label.setText(f"Thickness: {self.thickness_slider.value()}px")
-        self.timer.start(300)
+        self.timer.start(100)
 
     def apply_current(self):
         intensity = self.intensity_slider.value()
@@ -419,7 +419,7 @@ class NoiseDialog(QDialog):
 
     def on_slider_changed(self, value):
         self.amount_label.setText(f"Noise Amount: {self.amount_slider.value()}%")
-        self.timer.start(300)
+        self.timer.start(100)
 
     def apply_current(self):
         amount = self.amount_slider.value()
@@ -481,7 +481,7 @@ class HalftoneDialog(QDialog):
             self.dot_label.setText(f"Dot Size: {val}px")
         except Exception:
             self.dot_label.setText("Dot Size: ?px")
-        self.timer.start(300)
+        self.timer.start(100)
 
     def apply_current(self):
         try:
@@ -506,8 +506,8 @@ class HalftoneDialog(QDialog):
                 .reshape(H, 1, W, 1, 3)
             gray_vals = reshaped.mean(axis=(1, 3)).mean(axis=-1)
 
-        # Convert grayscale to radii
-        radii = (gray_vals / 255.0 * (dot_size // 2)).astype(np.int32)
+        # Convert grayscale to radius
+        radius = (gray_vals / 255.0 * (dot_size // 2)).astype(np.int32)
 
         # Draw with painter
         result_img = QImage(W, H, QImage.Format_ARGB32)
@@ -515,9 +515,9 @@ class HalftoneDialog(QDialog):
         painter = QPainter(result_img)
         painter.setRenderHint(QPainter.Antialiasing, True)
 
-        for by in range(radii.shape[0]):
-            for bx in range(radii.shape[1]):
-                r = radii[by, bx]
+        for by in range(radius.shape[0]):
+            for bx in range(radius.shape[1]):
+                r = radius[by, bx]
                 if r > 0:
                     cx = bx * dot_size + dot_size // 2
                     cy = by * dot_size + dot_size // 2
@@ -707,7 +707,7 @@ class PixelSortDialog(QDialog):
     def on_slider_changed(self, value):
         self.threshold_label.setText(f"brightness threshold: {self.threshold_slider.value()}%")
         self.offset_label.setText(f"offset position: {self.offset_slider.value()}px")
-        self.timer.start(300)
+        self.timer.start(100)
 
     def apply_current(self):
         direction = self.direction_combo.currentIndex()
@@ -801,7 +801,7 @@ class VectorDisplaceDialog(QDialog):
 
     def on_slider_changed(self, value):
         self.scale_label.setText(f"strength: {self.scale_slider.value()}")
-        self.timer.start(300)
+        self.timer.start(100)
 
     def apply_current(self):
         scale = self.scale_slider.value()
