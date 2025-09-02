@@ -487,32 +487,51 @@ class HalftoneDialog(QDialog):
         try:
             dot_size = int(self.dot_edit.text())
         except Exception:
-            dot_size = 6
+            dot_size = 8
+
         original_image = self.original_image
         image = original_image.toImage().convertToFormat(QImage.Format_ARGB32)
-        result_img = QImage(image.size(), QImage.Format_ARGB32)
-        result_img.fill(Qt.white)
-        painter = QPainter(result_img)
-        painter.setRenderHint(QPainter.Antialiasing, True)
         ptr = image.bits()
         ptr.setsize(image.byteCount())
         arr = np.frombuffer(ptr, np.uint8).reshape((image.height(), image.width(), 4))
-        h, w = arr.shape[:2]
-        for y in range(0, h, dot_size):
-            for x in range(0, w, dot_size):
-                block = arr[y:y+dot_size, x:x+dot_size]
-                avg = block[..., 0:3].mean(axis=(0,1))
-                gray = int(avg.mean())
-                radius = int((gray / 255) * (dot_size // 2))
-                cy, cx = y + dot_size // 2, x + dot_size // 2
-                color = QColor(gray, gray, gray)
-                painter.setBrush(color)
-                painter.setPen(Qt.NoPen)
-                painter.drawEllipse(cx-radius, cy-radius, radius*2, radius*2)
+        H, W = arr.shape[:2]
+
+        # Vectorized mean grayscale over blocks
+        if dot_size > 0:
+            reshaped = arr[:H - H % dot_size, :W - W % dot_size, :3] \
+                .reshape(H // dot_size, dot_size, W // dot_size, dot_size, 3)
+            gray_vals = reshaped.mean(axis=(1, 3)).mean(axis=-1)
+        else:
+            reshaped = arr[:H, :W, :3] \
+                .reshape(H, 1, W, 1, 3)
+            gray_vals = reshaped.mean(axis=(1, 3)).mean(axis=-1)
+
+        # Convert grayscale to radii
+        radii = (gray_vals / 255.0 * (dot_size // 2)).astype(np.int32)
+
+        # Draw with painter
+        result_img = QImage(W, H, QImage.Format_ARGB32)
+        result_img.fill(Qt.black)
+        painter = QPainter(result_img)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+
+        for by in range(radii.shape[0]):
+            for bx in range(radii.shape[1]):
+                r = radii[by, bx]
+                if r > 0:
+                    cx = bx * dot_size + dot_size // 2
+                    cy = by * dot_size + dot_size // 2
+                    g = int(gray_vals[by, bx])
+                    painter.setBrush(QColor(g, g, g))
+                    painter.setPen(Qt.NoPen)
+                    painter.drawEllipse(cx - r, cy - r, r * 2, r * 2)
+
+
         painter.end()
         pixmap = QPixmap.fromImage(result_img)
         self._last_pixmap = pixmap
         self.apply_callback(pixmap)
+
 
     def get_pixmap(self):
         return self._last_pixmap
@@ -567,15 +586,45 @@ class PixelateDialog(QDialog):
         ptr = image.bits()
         ptr.setsize(image.byteCount())
         arr = np.frombuffer(ptr, np.uint8).reshape((image.height(), image.width(), 4))
-        h, w = arr.shape[:2]
-        for y in range(0, h, blocksize):
-            for x in range(0, w, blocksize):
-                block = arr[y:y+blocksize, x:x+blocksize]
-                avg = block.mean(axis=(0,1)).astype(np.uint8)
-                block[...] = avg
+
+        # Move RGB channels to GPU
+        gpu_arr = cp.asarray(arr[..., :3])  # shape (H, W, 3)
+        H, W = gpu_arr.shape[:2]
+
+        # Compute number of blocks in each dimension
+        H_blocks = (H + blocksize - 1) // blocksize
+        W_blocks = (W + blocksize - 1) // blocksize
+
+        # Pad so dimensions are multiples of blocksize
+        pad_H = H_blocks * blocksize - H
+        pad_W = W_blocks * blocksize - W
+        gpu_arr_padded = cp.pad(gpu_arr, ((0, pad_H), (0, pad_W), (0, 0)), mode="edge")
+
+        # Reshape into blocks
+        reshaped = gpu_arr_padded.reshape(
+            H_blocks, blocksize,
+            W_blocks, blocksize,
+            3
+        )
+
+        # Compute mean per block (vectorized, GPU accelerated)
+        block_means = reshaped.mean(axis=(1, 3), keepdims=True).astype(cp.uint8)
+
+        # Broadcast back to block shape
+        pixelated = cp.broadcast_to(block_means, reshaped.shape)
+
+        # Reshape back to full image, then crop to original size
+        gpu_result = pixelated.reshape(H_blocks * blocksize, W_blocks * blocksize, 3)
+        gpu_result = gpu_result[:H, :W]
+
+        # Copy result back to CPU and insert alpha channel
+        result = cp.asnumpy(gpu_result)
+        arr[..., :3] = result
+
         pixmap = QPixmap.fromImage(image)
         self._last_pixmap = pixmap
         self.apply_callback(pixmap)
+
 
     def get_pixmap(self):
         return self._last_pixmap
