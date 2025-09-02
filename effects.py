@@ -714,8 +714,94 @@ class PixelSortDialog(QDialog):
             ctypes.sizeof(color_ref)
         )
 
+class VectorDisplaceDialog(QDialog):
+    def __init__(self, parent, original_image, apply_callback):
+        super().__init__(parent)
+        self.setWindowTitle("Vector Displacement")
+        self.setFixedSize(340, 220)
+        self.set_titlebar_color(0x010101)
+
+        self.original_image = original_image
+        self.apply_callback = apply_callback
+
+        layout = QVBoxLayout()
+
+        # Displacement strength
+        self.scale_slider = QSlider(Qt.Horizontal)
+        self.scale_slider.setMinimum(0)
+        self.scale_slider.setMaximum(100)
+        self.scale_slider.setValue(50)
+        self.scale_label = QLabel("displacement strength: 50")
+        layout.addWidget(self.scale_label)
+        layout.addWidget(self.scale_slider)
+
+        # Mode selection
+        layout.addWidget(QLabel("<vector mode>"))
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        layout.addWidget(buttons)
+        self.setLayout(layout)
+
+        self.scale_slider.valueChanged.connect(self.on_slider_changed)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        self._last_pixmap = original_image
+        self.timer = QTimer(self)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self.apply_current)
+
+        self.apply_current()
+
+    def on_slider_changed(self, value):
+        self.scale_label.setText(f"displacement strength: {self.scale_slider.value()}")
+        self.timer.start(300)
+
+    def apply_current(self):
+        scale = self.scale_slider.value()
+        scale = scale ** 2
+
+        image = self.original_image.toImage().convertToFormat(QImage.Format_ARGB32)
+        ptr = image.bits()
+        ptr.setsize(image.byteCount())
+        arr = np.frombuffer(ptr, np.uint8).reshape((image.height(), image.width(), 4))
+
+        gpu_arr = cp.asarray(arr[..., :3], dtype=cp.float32)
+        H, W = gpu_arr.shape[:2]
+
+        # Normalize [0,255] → [-1,1]
+        norm = (gpu_arr / 127.5) - 1.0
+
+        dx = norm[..., 0] * scale
+        dy = norm[..., 1] * scale
+
+        # Generate sampling grid
+        x, y = cp.meshgrid(cp.arange(W), cp.arange(H))
+        x2 = cp.clip((x + dx).astype(cp.int32), 0, W - 1)
+        y2 = cp.clip((y + dy).astype(cp.int32), 0, H - 1)
+
+        displaced = gpu_arr[y2, x2, :]
+        arr[..., :3] = cp.asnumpy(displaced)
+
+        pixmap = QPixmap.fromImage(image)
+        self._last_pixmap = pixmap
+        self.apply_callback(pixmap)
+
+    def get_pixmap(self):
+        return self._last_pixmap
+
+    def set_titlebar_color(self, color):
+        hwnd = int(self.winId())
+        color_ref = ctypes.c_uint(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            35,
+            ctypes.byref(color_ref),
+            ctypes.sizeof(color_ref)
+        )
+
 class PreferencesDialog(QDialog):
-    theme_changed = pyqtSignal(str)  # emit theme name when changed
+    theme_changed = pyqtSignal(str)
 
     def __init__(self, current_theme="cmd", parent=None):
         super().__init__(parent)

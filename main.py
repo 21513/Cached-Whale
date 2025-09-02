@@ -26,6 +26,7 @@ from effects import (
     HalftoneDialog,
     PixelateDialog,
     PixelSortDialog,
+    VectorDisplaceDialog,
     PreferencesDialog
 )
 
@@ -293,6 +294,10 @@ class ImageEditor(QWidget):
         self.pixelsort_btn = QPushButton("> pixel sort")
         self.pixelsort_btn.clicked.connect(self.pixelsort_dialog)
         sidebar_layout.addWidget(self.pixelsort_btn)
+
+        self.vectordisplace_btn = QPushButton("> vector displace")
+        self.vectordisplace_btn.clicked.connect(self.vectordisplace_dialog)
+        sidebar_layout.addWidget(self.vectordisplace_btn)
 
         sidebar_layout.addStretch()
 
@@ -627,6 +632,15 @@ class ImageEditor(QWidget):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = PixelSortDialog(self, original_image, self.set_canvas_pixmap)
+            
+            dlg.accepted.connect(lambda: self.push_undo(dlg.get_pixmap()))
+            dlg.rejected.connect(lambda: self.set_canvas_pixmap(original_image, push=False))
+            dlg.show()
+
+    def vectordisplace_dialog(self):
+        if self.image_item:
+            original_image = self.image_item.pixmap()
+            dlg = VectorDisplaceDialog(self, original_image, self.set_canvas_pixmap)
             
             dlg.accepted.connect(lambda: self.push_undo(dlg.get_pixmap()))
             dlg.rejected.connect(lambda: self.set_canvas_pixmap(original_image, push=False))
