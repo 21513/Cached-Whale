@@ -11,7 +11,9 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QDialogButtonBox,
     QSlider,
-    QComboBox
+    QComboBox,
+    QPushButton,
+    QColorDialog
 )
 from PyQt5.QtGui import QPixmap, QImage, QColor, QPainter, QTransform
 from PyQt5 import QtGui
@@ -845,6 +847,130 @@ class VectorDisplaceDialog(QDialog):
             ctypes.byref(color_ref),
             ctypes.sizeof(color_ref)
         )
+
+class ColorizeDialog(QDialog):
+    def __init__(self, parent, original_image, apply_callback, default_colors=None):
+        super().__init__(parent)
+        self.setWindowTitle("Colorize by Channel")
+        self.setFixedSize(360, 220)
+        self.set_titlebar_color(0x010101)
+
+        self.original_image = original_image
+        self.apply_callback = apply_callback
+
+        if default_colors is None:
+            default_colors = {
+                "R": QColor(255, 0, 0),
+                "G": QColor(0, 255, 0),
+                "B": QColor(0, 0, 255),
+            }
+        self.colors = default_colors
+
+        layout = QVBoxLayout()
+
+        self.r_button = QPushButton("Red Channel")
+        self.g_button = QPushButton("Green Channel")
+        self.b_button = QPushButton("Blue Channel")
+
+        self.r_button.setStyleSheet(f"background-color: {self.colors['R'].name()}")
+        self.g_button.setStyleSheet(f"background-color: {self.colors['G'].name()}")
+        self.b_button.setStyleSheet(f"background-color: {self.colors['B'].name()}")
+
+        layout.addWidget(self.r_button)
+        layout.addWidget(self.g_button)
+        layout.addWidget(self.b_button)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        layout.addWidget(buttons)
+
+        self.setLayout(layout)
+
+        # Signals
+        self.r_button.clicked.connect(lambda: self.pick_color("R"))
+        self.g_button.clicked.connect(lambda: self.pick_color("G"))
+        self.b_button.clicked.connect(lambda: self.pick_color("B"))
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        # Timer for delayed preview
+        self.timer = QTimer(self)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self.apply_current)
+
+        self._last_pixmap = original_image
+
+        # Preview on open
+        self.apply_current()
+
+    def pick_color(self, channel):
+        dialog = QColorDialog(self.colors[channel], self)
+        dialog.setOption(QColorDialog.ShowAlphaChannel, False)  # optional
+        dialog.setWindowTitle(f"Pick {channel} Channel Color")
+
+        # Apply titlebar color
+        hwnd = int(dialog.winId())
+        color_ref = ctypes.c_uint(0x010101)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_ref),
+            ctypes.sizeof(color_ref)
+        )
+
+        if dialog.exec_() == QDialog.Accepted:
+            color = dialog.selectedColor()
+            if color.isValid():
+                self.colors[channel] = color
+                button = getattr(self, f"{channel.lower()}_button")
+                button.setStyleSheet(f"background-color: {color.name()}")
+                self.timer.start(300)
+
+
+    def apply_current(self):
+        image = self.original_image.toImage().convertToFormat(QImage.Format_ARGB32)
+        ptr = image.bits()
+        ptr.setsize(image.byteCount())
+        arr = np.frombuffer(ptr, np.uint8).reshape((image.height(), image.width(), 4))
+
+        gpu_arr = cp.asarray(arr[..., :3], dtype=cp.float32)
+
+        r_map = cp.array([self.colors["R"].red(), self.colors["R"].green(), self.colors["R"].blue()], dtype=cp.float32)
+        g_map = cp.array([self.colors["G"].red(), self.colors["G"].green(), self.colors["G"].blue()], dtype=cp.float32)
+        b_map = cp.array([self.colors["B"].red(), self.colors["B"].green(), self.colors["B"].blue()], dtype=cp.float32)
+
+        r_chan = gpu_arr[..., 0:1] / 255.0
+        g_chan = gpu_arr[..., 1:2] / 255.0
+        b_chan = gpu_arr[..., 2:3] / 255.0
+
+        recolored = r_chan * r_map + g_chan * g_map + b_chan * b_map
+        recolored = cp.clip(recolored, 0, 255).astype(cp.uint8)
+
+        gpu_arr[...] = recolored
+
+        arr[..., :3] = cp.asnumpy(gpu_arr)
+        pixmap = QPixmap.fromImage(image)
+        self._last_pixmap = pixmap
+        self.apply_callback(pixmap)
+
+    def get_pixmap(self):
+        return self._last_pixmap
+
+    def set_titlebar_color(self, color):
+        hwnd = int(self.winId())
+        color_ref = ctypes.c_uint(color)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_CAPTION_COLOR,
+            ctypes.byref(color_ref),
+            ctypes.sizeof(color_ref)
+        )
+
+
+##########################################################
+#........................................................#
+#.......................Preferences......................#
+#........................................................#
+##########################################################
 
 class PreferencesDialog(QDialog):
     theme_changed = pyqtSignal(str)

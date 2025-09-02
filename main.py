@@ -27,6 +27,7 @@ from effects import (
     PixelateDialog,
     PixelSortDialog,
     VectorDisplaceDialog,
+    ColorizeDialog,
     PreferencesDialog
 )
 
@@ -72,6 +73,9 @@ class CanvasView(QGraphicsView):
         self.last_mouse_pos = None
         self.shift_pressed = False
 
+        self.current_color = None
+        self.show_color = False
+
         self.setSceneRect(-16384, -16384, 32768, 32768)
 
         tile_size = 64
@@ -100,8 +104,13 @@ class CanvasView(QGraphicsView):
             self.last_mouse_pos = event.pos()
         elif event.button() == Qt.LeftButton:
             self.left_mouse_pressed = True
-            self.setCursor(Qt.ClosedHandCursor)
             self.last_mouse_pos = event.pos()
+
+            if self.image_item_exists():
+                scene_pos = self.mapToScene(event.pos())
+                self.pick_color_at(scene_pos)
+                self.show_color = True
+                self.viewport().update()
         else:
             super().mousePressEvent(event)
 
@@ -124,8 +133,14 @@ class CanvasView(QGraphicsView):
 
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta.x())
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta.y())
+        elif self.left_mouse_pressed and self.image_item_exists():
+            scene_pos = self.mapToScene(event.pos())
+            self.pick_color_at(scene_pos)
+            self.show_color = True
+            self.viewport().update()
         else:
-            super().mouseMoveEvent(event)
+            self.show_color = False
+        super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MiddleButton:
@@ -133,6 +148,8 @@ class CanvasView(QGraphicsView):
             self.setCursor(Qt.ArrowCursor)
         elif event.button() == Qt.LeftButton:
             self.left_mouse_pressed = False
+            self.show_color = False
+            self.viewport().update()
             self.setCursor(Qt.ArrowCursor)
         else:
             super().mouseReleaseEvent(event)
@@ -143,6 +160,55 @@ class CanvasView(QGraphicsView):
             self.setCursor(Qt.ArrowCursor)
         else:
             super().keyReleaseEvent(event)
+
+    def image_item_exists(self):
+        for item in self.scene().items():
+            if isinstance(item, QGraphicsPixmapItem):
+                self.image_item = item
+                return True
+        return False
+
+    def pick_color_at(self, scene_pos):
+        if self.image_item:
+            img = self.image_item.pixmap().toImage()
+            x, y = int(scene_pos.x()), int(scene_pos.y())
+            if 0 <= x < img.width() and 0 <= y < img.height():
+                self.current_color = QColor(img.pixel(x, y))
+    
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self.show_color and self.current_color:
+            painter = QPainter(self.viewport())
+            try:
+                # Background box
+                box_w, box_h = 150, 60
+                rect = QRectF(10, 10, box_w, box_h)
+                painter.setBrush(QColor(0, 0, 0, 180))  # translucent dark bg
+                painter.setPen(Qt.NoPen)
+                painter.drawRoundedRect(rect, 6, 6)
+
+                # Color swatch
+                swatch = QRectF(rect.x() + 8, rect.y() + 8, 40, 40)
+                painter.setBrush(self.current_color)
+                painter.setPen(Qt.white)
+                painter.drawRect(swatch)
+
+                # Color text
+                r, g, b, a = (self.current_color.red(),
+                            self.current_color.green(),
+                            self.current_color.blue(),
+                            self.current_color.alpha())
+                hex_text = f"#{r:02X}{g:02X}{b:02X}"
+                rgba_text = f"({r}, {g}, {b}, {a})"
+
+                painter.setPen(Qt.white)
+                painter.drawText(int(rect.x()) + 60, int(rect.y()) + 25, hex_text)
+                painter.drawText(int(rect.x()) + 60, int(rect.y()) + 45, rgba_text)
+
+            finally:
+                painter.end()
+
+
 
 class StartPage(QWidget):
     def __init__(self, recent_images, import_callback, recent_callback):
@@ -340,6 +406,10 @@ class ImageEditor(QWidget):
         self.vectordisplace_btn = QPushButton("> vector displace")
         self.vectordisplace_btn.clicked.connect(self.vectordisplace_dialog)
         sidebar_layout.addWidget(self.vectordisplace_btn)
+
+        self.colorize_btn = QPushButton("> colorize by channel")
+        self.colorize_btn.clicked.connect(self.colorize_dialog)
+        sidebar_layout.addWidget(self.colorize_btn)
 
         sidebar_layout.addStretch()
 
@@ -684,6 +754,15 @@ class ImageEditor(QWidget):
         if self.image_item:
             original_image = self.image_item.pixmap()
             dlg = VectorDisplaceDialog(self, original_image, self.set_canvas_pixmap)
+            
+            dlg.accepted.connect(lambda: self.push_undo(dlg.get_pixmap()))
+            dlg.rejected.connect(lambda: self.set_canvas_pixmap(original_image, push=False))
+            dlg.show()
+
+    def colorize_dialog(self):
+        if self.image_item:
+            original_image = self.image_item.pixmap()
+            dlg = ColorizeDialog(self, original_image, self.set_canvas_pixmap)
             
             dlg.accepted.connect(lambda: self.push_undo(dlg.get_pixmap()))
             dlg.rejected.connect(lambda: self.set_canvas_pixmap(original_image, push=False))

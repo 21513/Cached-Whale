@@ -63,7 +63,7 @@ def cmd_theme(background_color, text_color, border):
     }}
 
     CanvasView {{
-        border: {border};
+        border: 2px solid {text_color};
         border-radius: 4px;
     }}
 
