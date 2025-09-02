@@ -1,167 +1,195 @@
-# Dark mode variables
-background_color = "#010101"
-text_color = "#ffffff"
+def cmd_theme(background_color, text_color, border):
+    return f"""
+    QWidget {{
+        background-color: {background_color};
+        color: {text_color};
+        font-family: 'Minecraft';
+        font-size: 16px;
+        padding: 4px;
+    }}
 
-dborder = "1px solid #ffffff"
+    QPushButton {{
+        padding: 4px;
+        text-align: left;
+    }}
 
-# Hacker mode variables
-hbackground_color = "#010101"
-htext_color = "#00ff00"
-hhover_color = "#202020"
+    QPushButton:hover {{
+        border: 1px solid {text_color};
+        background-color: {text_color};
+        color: {background_color};
+    }}
 
-hborder = "1px solid #00ff00"
+    QPushButton:focus {{
+        background-color: {text_color};
+        color: {background_color};
+        outline: none;
+        border: {border};
+    }}
 
-DARK_MODE = f"""
-QWidget {{
-    background-color: {background_color};
-    color: {text_color};
-    font-family: 'Minecraft';
-    font-size: 16px;
-    padding: 4px;
-}}
+    QLabel {{
+        padding: 4px;
+    }}
 
-QPushButton {{
-    padding: 4px;
-    text-align: left;
-}}
+    QMenuBar {{
+        background-color: {background_color};
+        color: {text_color};
+    }}
 
-QPushButton:hover {{
-    border: 1px solid {text_color};
-    background-color: {text_color};
-    color: {background_color};
-}}
+    QMenuBar::item {{
+        spacing: 4px;
+        padding: 4px 8px;
+        background: transparent;
+    }}
 
-QPushButton:focus {{
-    background-color: {text_color};
-    color: {background_color};
-    outline: none;
-    border: {dborder};
-}}
+    QMenuBar::item:selected {{
+        background-color: {text_color};
+        color: {background_color};
+    }}
 
-QLabel {{
-    padding: 4px;
-}}
+    QMenu::separator {{
+        height: 2px;
+        background-color: {text_color};
+        margin: 4px 8px;
+    }}
 
-QMenuBar {{
-    background-color: {background_color};
-    color: {text_color};
-}}
+    QMenu {{
+        padding: 2px;
+        border: {border};
+    }}
 
-QMenuBar::item {{
-    spacing: 4px;
-    padding: 4px 8px;
-    background: transparent;
-}}
+    QMenu::item:selected {{
+        background-color: {text_color};
+        color: {background_color};
+    }}
 
-QMenuBar::item:selected {{
-    background-color: {text_color};
-    color: {background_color};
-}}
+    CanvasView {{
+        border: {border};
+        border-radius: 4px;
+    }}
 
-QMenu::separator {{
-    height: 2px;
-    background-color: {text_color};
-    margin: 4px 8px;
-}}
+    QComboBox {{
+        background-color: #222;
+        color: #eee;
+        border: 1px solid #555;
+        padding: 4px;
+    }}
 
-QMenu {{
-    padding: 2px;
-    border: {dborder};
-}}
+    QComboBox:focus {{
+        background-color: {background_color};
+        color: {text_color};
+        border: {border};
+    }}
 
-QMenu::item:selected {{
-    background-color: {text_color};
-    color: {background_color};
-}}
+    QComboBox:on {{
+        background-color: {background_color};
+    }}
 
-CanvasView {{
-    border: {dborder};
-    border-radius: 4px;
-}}
+    QComboBox QAbstractItemView {{
+        background-color: {background_color};
+        color: {text_color};
+        selection-background-color: {background_color};
+        selection-color: {text_color};
+    }}
 
-QComboBox {{
-    background-color: #222;
-    color: #eee;
-    border: 1px solid #555;
-    padding: 4px;
-}}
+    QFrame[class="divider"] {{
+        background-color: {text_color};
+    }}
+    """
 
-QComboBox:focus {{
-    background-color: {background_color};
-    color: {text_color};
-    border: {dborder};
-}}
+def hacker_theme(background_color, text_color, border):
+    return f"""
+    QWidget {{
+        background-color: {background_color};
+        color: {text_color};
+        font-family: 'Minecraft';
+        font-size: 16px;
+        padding: 4px;
+    }}
 
-QComboBox:on {{
-    background-color: {background_color};
-}}
+    QPushButton {{
+        padding: 4px;
+        text-align: left;
+    }}
 
-QComboBox QAbstractItemView {{
-    background-color: {background_color};
-    color: {text_color};
-    selection-background-color: {background_color};
-    selection-color: {text_color};
-}}
+    QPushButton:hover {{
+        border: 1px solid {text_color};
+        background-color: {text_color};
+        color: {background_color};
+    }}
 
-QFrame[class="divider"] {{
-    background-color: {text_color};
-}}
-"""
+    QPushButton:focus {{
+        background-color: {text_color};
+        color: {background_color};
+        outline: none;
+        border: {border};
+    }}
 
-HACKER_MODE = f"""
-QWidget {{
-    background-color: {hbackground_color};
-    color: {htext_color};
-    font-family: 'Minecraft';
-    font-size: 16px;
-    padding: 4px;
-}}
+    QLabel {{
+        padding: 4px;
+    }}
 
-QPushButton {{
-    padding: 4px;
-    text-align: left;
-}}
+    QMenuBar {{
+        background-color: {background_color};
+        color: {text_color};
+    }}
 
-QPushButton:hover {{
-    border: 1px solid {htext_color};
-}}
+    QMenuBar::item {{
+        spacing: 4px;
+        padding: 4px 8px;
+        background: transparent;
+    }}
 
-QLabel {{
-    padding: 4px;
-}}
+    QMenuBar::item:selected {{
+        background-color: {text_color};
+        color: {background_color};
+    }}
 
-QMenuBar {{
-    background-color: {hbackground_color};
-    color: {htext_color};
-}}
+    QMenu::separator {{
+        height: 2px;
+        background-color: {text_color};
+        margin: 4px 8px;
+    }}
 
-QMenuBar::item {{
-    spacing: 4px;
-    padding: 4px 8px;
-    background: transparent;
-}}
+    QMenu {{
+        padding: 2px;
+        border: {border};
+    }}
 
-QMenuBar::item:selected {{
-    background-color: {hhover_color};
-}}
+    QMenu::item:selected {{
+        background-color: {text_color};
+        color: {background_color};
+    }}
 
-QMenu::separator {{
-    height: 2px;
-    background-color: {htext_color};
-    margin: 4px 8px;
-}}
+    CanvasView {{
+        border: {border};
+        border-radius: 4px;
+    }}
 
-QMenu {{
-    padding: 2px;
-    border: {hborder};
-}}
+    QComboBox {{
+        background-color: #222;
+        color: #eee;
+        border: 1px solid #555;
+        padding: 4px;
+    }}
 
-QMenu::item:selected {{
-    background-color: {hhover_color};
-}}
+    QComboBox:focus {{
+        background-color: {background_color};
+        color: {text_color};
+        border: {border};
+    }}
 
-CanvasView {{
-    border: {hborder};
-    border-radius: 4px;
-}}
-"""
+    QComboBox:on {{
+        background-color: {background_color};
+    }}
+
+    QComboBox QAbstractItemView {{
+        background-color: {background_color};
+        color: {text_color};
+        selection-background-color: {background_color};
+        selection-color: {text_color};
+    }}
+
+    QFrame[class="divider"] {{
+        background-color: {text_color};
+    }}
+    """

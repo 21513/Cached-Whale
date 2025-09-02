@@ -16,7 +16,7 @@ from PyQt5.QtGui import (
 from PyQt5.QtCore import (
     Qt, QRectF, pyqtSignal, QStandardPaths
 )
-from style import DARK_MODE, HACKER_MODE
+from style import cmd_theme, hacker_theme
 from effects import (
     CompressionDialog,
     DitherDialog,
@@ -40,9 +40,14 @@ os.makedirs(APPDATA_DIR, exist_ok=True)
 
 RECENT_FILE = os.path.join(APPDATA_DIR, "recents.json")
 
-DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+DWMWA_USE_IMMERSIVE_CMD_THEME = 20
 DWMWA_CAPTION_COLOR = 35
 DWMWA_TEXT_COLOR = 36
+
+CMD_THEME = cmd_theme("#010101", "#ffffff", "1px solid #ffffff")
+HACKER_THEME = hacker_theme("#010101", "#00ff00", "1px solid #00ff00")
+
+theme_name = ""
 
 class CanvasView(QGraphicsView):
     def __init__(self):
@@ -159,7 +164,7 @@ class ResizeDialog(QDialog):
 
         self.setWindowTitle("resize image")
         self.setFixedSize(260, 120)
-        self.setStyleSheet(DARK_MODE)
+        self.setStyleSheet(CMD_THEME)
 
         self.orig_w = orig_w
         self.orig_h = orig_h
@@ -229,7 +234,7 @@ class ImageEditor(QWidget):
             families = QFontDatabase.applicationFontFamilies(font_id)
             if families:
                 self.setFont(QFont(families[0], 12))
-        self.setStyleSheet(DARK_MODE)
+        self.setStyleSheet(CMD_THEME)
 
         self.set_titlebar_color(0x010101)
 
@@ -537,11 +542,12 @@ class ImageEditor(QWidget):
 
     def apply_theme(self, theme_name):
         if theme_name == "cmd":
-            self.setStyleSheet(DARK_MODE)
+            self.setStyleSheet(CMD_THEME)
+
         elif theme_name == "hacker":
-            self.setStyleSheet(HACKER_MODE)
+            self.setStyleSheet(HACKER_THEME)
         else:
-            self.setStyleSheet(DARK_MODE)
+            self.setStyleSheet(CMD_THEME)
 
         self.current_theme = theme_name
 
