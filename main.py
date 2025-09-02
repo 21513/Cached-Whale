@@ -68,7 +68,9 @@ class CanvasView(QGraphicsView):
 
         self.zoom_factor = 1.25
         self.middle_mouse_pressed = False
+        self.left_mouse_pressed = False
         self.last_mouse_pos = None
+        self.shift_pressed = False
 
         self.setSceneRect(-16384, -16384, 32768, 32768)
 
@@ -96,11 +98,27 @@ class CanvasView(QGraphicsView):
             self.middle_mouse_pressed = True
             self.setCursor(Qt.ClosedHandCursor)
             self.last_mouse_pos = event.pos()
+        elif event.button() == Qt.LeftButton:
+            self.left_mouse_pressed = True
+            self.setCursor(Qt.ClosedHandCursor)
+            self.last_mouse_pos = event.pos()
         else:
             super().mousePressEvent(event)
 
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Shift:
+            self.shift_pressed = True
+        else:
+            super().keyPressEvent(event)
+
     def mouseMoveEvent(self, event):
         if self.middle_mouse_pressed and self.last_mouse_pos is not None:
+            delta = event.pos() - self.last_mouse_pos
+            self.last_mouse_pos = event.pos()
+
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta.x())
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta.y())
+        elif self.left_mouse_pressed and self.shift_pressed and self.last_mouse_pos is not None:
             delta = event.pos() - self.last_mouse_pos
             self.last_mouse_pos = event.pos()
 
@@ -113,8 +131,18 @@ class CanvasView(QGraphicsView):
         if event.button() == Qt.MiddleButton:
             self.middle_mouse_pressed = False
             self.setCursor(Qt.ArrowCursor)
+        elif event.button() == Qt.LeftButton:
+            self.left_mouse_pressed = False
+            self.setCursor(Qt.ArrowCursor)
         else:
             super().mouseReleaseEvent(event)
+    
+    def keyReleaseEvent(self, event):
+        if event.key() == Qt.Key_Shift:
+            self.shift_pressed = False
+            self.setCursor(Qt.ArrowCursor)
+        else:
+            super().keyReleaseEvent(event)
 
 class StartPage(QWidget):
     def __init__(self, recent_images, import_callback, recent_callback):
