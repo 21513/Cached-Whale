@@ -181,8 +181,8 @@ class CanvasView(QGraphicsView):
             painter = QPainter(self.viewport())
             try:
                 # Background box
-                box_w, box_h = 150, 60
-                rect = QRectF(10, 10, box_w, box_h)
+                box_width, box_height = 150, 60
+                rect = QRectF(10, 10, box_width, box_height)
                 painter.setBrush(QColor(0, 0, 0, 180))  # translucent dark bg
                 painter.setPen(Qt.NoPen)
                 painter.drawRoundedRect(rect, 6, 6)
